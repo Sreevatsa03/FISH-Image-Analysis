@@ -1,4 +1,6 @@
 from PIL import Image
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
 
 class Puncta_Analysis:
@@ -11,4 +13,6 @@ class Puncta_Analysis:
     """
     
     def __init__(self, image):
-        im = Image.open(image)
+        im = mpimg.imread(image)
+        plt.imshow(im)
+        plt.savefig('image_plot.png')

@@ -1,0 +1,5 @@
+"""
+Below is a list of python packages you should have installed before using our library
+"""
+
+matplotlib
