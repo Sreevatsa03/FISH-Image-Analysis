@@ -3,3 +3,4 @@ Below is a list of python packages you should have installed before using our li
 """
 
 matplotlib
+opencv-python
