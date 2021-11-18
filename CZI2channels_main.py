@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Nov 15 20:21:50 2021
-
-@author: antoniovillanueva
-"""
 import czifile as cz # You will first have to install this library by typing “pip install czifile”
 from czifile import CziFile
 import os
@@ -116,35 +109,3 @@ class czi_chans:
             fig.savefig(f'{self.dir}/C{C + 1}_{self.cziname}.png') 
             plt.close(fig)    
             return print('Saved')
-        
-      
-        
-#%%   
-def main():
-    p ='/Users/antoniovillanueva/OneDrive - Northeastern University/NEU/2021/Data Science Intermediate/Project/Images/SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001/SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001.czi'
-    czi = czi_chans(p)
-    czi.show_channel(4)
-    print(czi.nchans())
-    for chan in (czi.nchans()):
-       czi.chan2png(chan)
-    
-    
-   
-
-if __name__ == "__main__":
-    main()    
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
