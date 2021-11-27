@@ -43,7 +43,7 @@ class Puncta_Analysis:
         ax = plt.Axes(fig, [0., 0., 1., 1.])
         ax.set_axis_off()
         fig.add_axes(ax)
-        ax.imshow(im_dots, aspect='auto', cmap='gray_r')
+        ax.imshow(im_dots, aspect='auto', cmap='gray')
         fig.savefig('analysis_output/dots_plot.png')
         self.dots = 'analysis_output/dots_plot.png'
     
