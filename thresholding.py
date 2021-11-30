@@ -107,8 +107,8 @@ def erosion(filename, iterations, output = "plot"):
         cv2.waitKey(0)
 
     
-if __name__ == "__main__":
-    watershed('MAX_C4-SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001.tif', "plot")
+# if __name__ == "__main__":
+#     watershed('MAX_C4-SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001.tif', "plot")
     #gaussian_blur('image2.tif', 11)
     #binary_threshold('MAX_C3-SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001.tif', 190)
     #erosion('MAX_C3-SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001.tif', 100)
