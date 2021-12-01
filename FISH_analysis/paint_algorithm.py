@@ -28,6 +28,10 @@ import cv2
 import itertools
 import queue
 from queue import SimpleQueue
+from skimage.morphology import flood_fill
+
+def flooding(image, x, y, newval):
+    return flood_fill(image, (x, y), newval)
 
 
 
@@ -44,16 +48,29 @@ def resize(image, width, height, newfile):
 def define_border(image_array, R, G, B):
     """ Differentiate between border and non-border based on pixel color
         Parameters: image array, known RGB values of non-border color
-        Returns: 1D numpy array of pixel designation string (border or non-border)
+        Returns: 1D numpy array of pixel designation string (border-0 or non-border-1)
     """
     pixel_color = []
     for i in range(len(image_array)):
         if image_array[i][0] == R and image_array[i][1] == G and image_array[i][2] == B:
-            pixel_color.append("non-border")
+            pixel_color.append(0)
         else:
-            pixel_color.append("border")
+            pixel_color.append(1)
     return(np.array(pixel_color))
 
+def define_dots(image_array, R, G, B):
+    """ Differentiate between border and non-border based on pixel color
+        Parameters: image array, known RGB values of non-border color
+        Returns: 1D numpy array of pixel designation string (else-0 or dots-2)
+    """
+    pixel_color = []
+    for i in range(len(image_array)):
+        if image_array[i][0] == R and image_array[i][1] == G and image_array[i][2] == B:
+            pixel_color.append(2)
+        else:
+            pixel_color.append(0)
+    return(np.array(pixel_color))
+    
 def reshape(image_array, width):
     """ Reshape a 1D array to desired width
         Parameters: image_array, int(width) of desired array
@@ -234,6 +251,7 @@ if __name__ == "__main__":
     # plt.axis("off")
     
     original = "small_test_cell_red.png"
+    # original = "C4_SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001_otlines.png"
     
     # set desired dimensions of image to analyze
     width, height = (360, 360)
@@ -256,6 +274,7 @@ if __name__ == "__main__":
     outlines on puncta/dots (unless we know the RGB values of background, cell
                              outlines, and dots... then we'd have to reajust
                              this function)
+    255, 0, 0 = red
     """
     colors = define_border(image_array, 255, 255, 255)
     
@@ -263,29 +282,73 @@ if __name__ == "__main__":
     # to see the array: go to 150, 100
     reshaped_colors = reshape(colors, 360)
     
-    # make copy of array to start painting
-    image_copy = np.copy(reshaped_colors)
     
-    # Get the neighbor pixels of a pixel of interest
-    # This example finds the pixels neighboring the first pixel at location 0
-    neighbor_pixel_loc = neighbor(image_copy, 0, 1.5, image_copy.shape[0], image_copy.shape[1])
-    print(neighbor_pixel_loc)
-    print(len(neighbor_pixel_loc))
-    # print(image_copy[0][1])
-    
-    # new = linear_to_array(neighbor_pixel_loc[3], 360)
-    # print(new)
-    # print(dimensions(image_copy))
+    # for row in reshaped_colors:
+    #       for pixel in row:
+    #         if pixel == 1:
+    #             print('dot pixel')
+                
     
     for i in range(len(reshaped_colors)):
         for j in range(len(reshaped_colors[i])):
             if reshaped_colors[i][j] == 1:
                 print(str(i) + ',' + str(j))
 
-    new2 = array_to_linear(image_copy)
+
+    
+    # make copy of array to start painting
+    image_copy = np.copy(reshaped_colors)
+    
+    # Get the neighbor pixels of a pixel of interest
+    # This example finds the pixels neighboring the first pixel at location 0
+    neighbor_pixel_loc = neighbor(image_copy, 0, 1.5, image_copy.shape[0], image_copy.shape[1])
+    # print(neighbor_pixel_loc)
+    # print(len(neighbor_pixel_loc))
+    # print(image_copy[0][1])
+
+    # new = linear_to_array(neighbor_pixel_loc[3], 360)
+    # print(new)
+    # print(dimensions(image_copy))
+    
+    # new2 = array_to_linear(image_copy)
     # print(new2)
 
     # new3 = cell_detection(image_copy, 1.5, image_copy.shape[0], image_copy.shape[1])
     # print(new3)
     
-    new4 = detect(new2, neighbor_pixel_loc)
+    # new4 = detect(new2, neighbor_pixel_loc)
+
+#####start of flood fill tests
+    new4 = flooding(reshaped_colors, 270, 190, 1)
+
+
+################## dots 
+    dots = "dots_plot.png"
+    resized_dots = resize(dots, width, height, "dots_resized.png")
+    dots_image = PIL.Image.open(resized_dots)
+    
+    # convert image to numpy array
+    dot_image_sequence = dots_image.getdata()
+    dot_image_array = np.array(dot_image_sequence)
+    
+    dots_color = define_dots(dot_image_array, 0, 0, 0)
+    
+    reshaped_dots_color = reshape(dots_color, 360)
+    
+    # for row in reshaped_dots_color:
+    #      for pixel in row:
+    #         if pixel == 2:
+    #             print('dot pixel')
+
+
+    dots_image_copy = np.copy(reshaped_dots_color)
+    
+    # Get the neighbor pixels of a pixel of interest
+    # This example finds the pixels neighboring the first pixel at location 0
+    neighbor_dots = neighbor(dots_image_copy, 5, 1.5, image_copy.shape[0], image_copy.shape[1])
+    # print(neighbor_dots)
+    # print(len(neighbor_dots))
+    
+    
+    
+   
