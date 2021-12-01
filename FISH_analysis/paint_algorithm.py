@@ -33,7 +33,26 @@ from skimage.morphology import flood_fill
 def flooding(image, x, y, newval):
     return flood_fill(image, (x, y), newval)
 
-
+def define_cell(image, centroid_x, centroid_y, newval):
+    """ Obtain indicies of pixels within a defined border. Area inside border
+        must be one color/value
+        Parameters:
+            image: 2D numpy array
+            centroid_x, centroid_y: integer indicies of centroid's location
+            newval: the replacement value (nonzero integer)
+        Returns:
+            numpy array (2 columns) of the x and y indicies of each pixel in
+            the border
+    """
+    # flood fill--- everything inside border is changed to newval
+    flooded_cell = flooding(image, centroid_x, centroid_y, newval)
+    
+    # get indicies of cell+border pixels
+    cell_x, cell_y = np.nonzero(flooded_cell)
+    
+    # combine x and y coordinates of cell into one numpy array
+    cell_loc = np.array((cell_x, cell_y), order = "F").T
+    return cell_loc
 
 def resize(image, width, height, newfile):
     """ Resize image to desired width and height
@@ -319,35 +338,45 @@ if __name__ == "__main__":
     # new4 = detect(new2, neighbor_pixel_loc)
 
 #####start of flood fill tests
-    new4 = flooding(reshaped_colors, 270, 190, 1)
-
+    # flood fill red test cell--- border == 1, else == 0
+    flooded_cell = flooding(reshaped_colors, 270, 190, 1)
+    
+    # get the indicies of nonzero (aka cell+border) pixels; looked at source code for flood_fill
+    cell_x, cell_y = np.nonzero(flooded_cell)
+    
+    # combine x and y coordinates of cell into one numpy array
+    cell_loc = np.array((cell_x, cell_y), order = "F").T
+    
+    # used define_cell function to get the indicies of pixels inside cell
+    # same as above but now callable with function
+    test = define_cell(reshaped_colors, 270, 190, 1)
 
 ################## dots 
-    dots = "dots_plot.png"
-    resized_dots = resize(dots, width, height, "dots_resized.png")
-    dots_image = PIL.Image.open(resized_dots)
+    # dots = "dots_plot.png"
+    # resized_dots = resize(dots, width, height, "dots_resized.png")
+    # dots_image = PIL.Image.open(resized_dots)
     
-    # convert image to numpy array
-    dot_image_sequence = dots_image.getdata()
-    dot_image_array = np.array(dot_image_sequence)
+    # # convert image to numpy array
+    # dot_image_sequence = dots_image.getdata()
+    # dot_image_array = np.array(dot_image_sequence)
     
-    dots_color = define_dots(dot_image_array, 0, 0, 0)
+    # dots_color = define_dots(dot_image_array, 0, 0, 0)
     
-    reshaped_dots_color = reshape(dots_color, 360)
+    # reshaped_dots_color = reshape(dots_color, 360)
     
-    # for row in reshaped_dots_color:
-    #      for pixel in row:
-    #         if pixel == 2:
-    #             print('dot pixel')
+    # # for row in reshaped_dots_color:
+    # #      for pixel in row:
+    # #         if pixel == 2:
+    # #             print('dot pixel')
 
 
-    dots_image_copy = np.copy(reshaped_dots_color)
+    # dots_image_copy = np.copy(reshaped_dots_color)
     
-    # Get the neighbor pixels of a pixel of interest
-    # This example finds the pixels neighboring the first pixel at location 0
-    neighbor_dots = neighbor(dots_image_copy, 5, 1.5, image_copy.shape[0], image_copy.shape[1])
-    # print(neighbor_dots)
-    # print(len(neighbor_dots))
+    # # Get the neighbor pixels of a pixel of interest
+    # # This example finds the pixels neighboring the first pixel at location 0
+    # neighbor_dots = neighbor(dots_image_copy, 5, 1.5, image_copy.shape[0], image_copy.shape[1])
+    # # print(neighbor_dots)
+    # # print(len(neighbor_dots))
     
     
     
