@@ -87,7 +87,7 @@ class Puncta_Analysis:
     
         img.putdata(newData)
         img.save('analysis_output/mask_edges.png', "PNG")
-        self.mask_edges = 'analysis_output/mask_edges.png'
+        self.mask_edges = 'Images/SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001/Input/C4_SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001_otlines.png'
         
     def overlay(self):
         """
@@ -103,6 +103,16 @@ class Puncta_Analysis:
         img1 = Image.open(self.dots)
         
         # open the image of the mask
+        image = Image.open(self.mask_edges)
+        resized_image = image.resize((500, 500))
+        resized_image.save('analysis_output/outline.png')
+        self.mask_edges = 'analysis_output/outline.png'
+
+        image = Image.open(self.mask_edges)
+        rotated = image.rotate(270, expand=True)
+        rotated.save('analysis_output/outline.png')
+        self.mask_edges = 'analysis_output/outline.png'
+
         img2 = Image.open(self.mask_edges)
         
         # paste the mask on top of the dots

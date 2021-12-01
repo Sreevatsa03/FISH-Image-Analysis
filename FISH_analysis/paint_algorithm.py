@@ -277,6 +277,11 @@ if __name__ == "__main__":
     # print(new)
     # print(dimensions(image_copy))
     
+    for i in range(len(reshaped_colors)):
+        for j in range(len(reshaped_colors[i])):
+            if reshaped_colors[i][j] == 1:
+                print(str(i) + ',' + str(j))
+
     new2 = array_to_linear(image_copy)
     # print(new2)
 
