@@ -30,7 +30,7 @@ class Puncta_Thresholding:
         ax = plt.Axes(fig, [0., 0., 1., 1.])
         ax.set_axis_off()
         fig.add_axes(ax)
-        plt.imshow(RGB_img, 'gray', vmin = 0, vmax = 255, aspect='auto')
+        ax.imshow(RGB_img, 'gray', vmin = 0, vmax = 255, aspect='auto')
         fig.savefig(('thresholding_output/'.strip() + str(title).strip().lower() + '.png'.strip()))
 
     def watershed(self, output = "plot"):
