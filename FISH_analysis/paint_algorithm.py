@@ -4,13 +4,14 @@ Created on Sun Nov 21 18:09:48 2021
 
 @author: kayla
 
-white = [255, 255, 255]
-
 Convert png to array: https://www.kite.com/python/answers/how-to-convert-an-
                       image-to-an-array-in-python
 Resize image to 360x360:https://auth0.com/blog/image-processing-in-python-
                         with-pillow/
 Find neighbor pixels: https://youtu.be/RHTzPCM5vnw MonkHaus Youtube video
+Referenced source code for flood_fill
+https://thispointer.com/find-the-index-of-a-value-in-numpy-array/
+Export df as csv: https://datatofish.com/export-dataframe-to-csv/
 
 Potentially useful sites HERE:
     https://codestudyblog.com/cnb11/1123194848.html
@@ -20,44 +21,23 @@ Potentially useful sites HERE:
 import numpy as np
 import PIL
 from PIL import Image
-from matplotlib.path import Path
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import skimage.data
-import cv2
-import itertools
-import queue
-from queue import SimpleQueue
 from skimage.morphology import flood_fill
+import pandas as pd
 
-def flooding(image, x, y, newval):
-    return flood_fill(image, (x, y), newval)
-
-def define_cell(image, centroid_x, centroid_y, newval):
-    """ Obtain indicies of pixels within a defined border. Area inside border
-        must be one color/value
+def explore_image(cell_png):
+    """ Explore properties of an image (e.g., size, colors, etc.)
         Parameters:
-            image: 2D numpy array
-            centroid_x, centroid_y: integer indicies of centroid's location
-            newval: the replacement value (nonzero integer)
         Returns:
-            numpy array (2 columns) of the x and y indicies of each pixel in
-            the border
     """
-    # flood fill--- everything inside border is changed to newval
-    flooded_cell = flooding(image, centroid_x, centroid_y, newval)
-    
-    # get indicies of cell+border pixels
-    cell_x, cell_y = np.nonzero(flooded_cell)
-    
-    # combine x and y coordinates of cell into one numpy array
-    cell_loc = np.array((cell_x, cell_y), order = "F").T
-    return cell_loc
+    pass
 
 def resize(image, width, height, newfile):
-    """ Resize image to desired width and height
-        Parameters: image, int(width), int(height), name for new image (string)
-        Returns: resized image filename
+    """ Resize image to desired width and height (in pixels)
+        Parameters:
+            image: numpy array of an image
+            width, height: desired width and height of image (in pixels)
+            newfile: a string, the name for the resized image
+        Returns: filename of resized image
     """
     image = Image.open(image)
     resized_image = image.resize((width, height))
@@ -65,319 +45,250 @@ def resize(image, width, height, newfile):
     return newfile
 
 def define_border(image_array, R, G, B):
-    """ Differentiate between border and non-border based on pixel color
-        Parameters: image array, known RGB values of non-border color
-        Returns: 1D numpy array of pixel designation string (border-0 or non-border-1)
+    """ Differentiate between border and non-border based on pixel color of
+            non-border pixels (all non-border must have same RGB)
+        Parameters:
+            image array: a numpy array of the image
+            R, G, B: known RGB values of non-border color
+        Returns: 1D numpy array of pixel designation
+            border pixel = 1 and non-border pixel = 0
     """
-    pixel_color = []
+    pixel_designation = []
     for i in range(len(image_array)):
         if image_array[i][0] == R and image_array[i][1] == G and image_array[i][2] == B:
-            pixel_color.append(0)
+            pixel_designation.append(0)
         else:
-            pixel_color.append(1)
-    return(np.array(pixel_color))
+            pixel_designation.append(1)
+    return(np.array(pixel_designation))
 
-def define_dots(image_array, R, G, B):
-    """ Differentiate between border and non-border based on pixel color
-        Parameters: image array, known RGB values of non-border color
-        Returns: 1D numpy array of pixel designation string (else-0 or dots-2)
-    """
-    pixel_color = []
-    for i in range(len(image_array)):
-        if image_array[i][0] == R and image_array[i][1] == G and image_array[i][2] == B:
-            pixel_color.append(2)
-        else:
-            pixel_color.append(0)
-    return(np.array(pixel_color))
-    
 def reshape(image_array, width):
-    """ Reshape a 1D array to desired width
-        Parameters: image_array, int(width) of desired array
-        Returns: reshaped array
+    """ Reshape a 1D array to 2D array of desired width
+        Parameters:
+            image_array: 1D numpy array
+            width: integer representing desired width of 2D array in pixels
+        Returns: the reshaped 2D numpy array
     """
     return np.reshape(image_array, (-1, width))
 
-def neighbor(image, index, radius, width, height):
-    """ Find the neighbor pixels surrounding a pixel of interest (POI)
-        Paramters:
-            image: an array
-            index: int representing the location of the POI
-            radius: a float or int representing the radius from POI considered
-            width, hieght: dimensions of the image in pixels
-        Returns: a numpy array containing the pixel locations of pixels that
-            neighbor the POI
+def flooding(image, x, y, newval):
+    """ Flood the area inside of a cell with a new value
+        Parameters:
+            image: 2D numpy array of image
+            x, y: integer indices of cell centroid's pixel location
+            newval: the replacement value (integer, float, string, or bool)
+        Returns: 2D numpy array where all pixels within cell of interest
+            have value = newval
     """
-    width, height = image.shape
-    index, radius = index, radius
-    row, column = index // width, index % width
-    
-    # Define integer of radius (used in vertical/horizontal neighborhood calc)
-    r = int(radius)
-    
-    # Create two neighborhood lists: vertical and horizontal
-    x = np.arange(max(column - r, 0), min(column + r + 1, width))
-    y = np.arange(max(row - r, 0), min(row + r + 1, height))
-    
-    # Create mesh grid
-    X, Y = np.meshgrid(x, y)
-    
-    # Calculate Euclidean distances
-    R = np.sqrt((X - column)**2 + (Y - row)**2)
-    
-    # Consider pixels within radius as neighbors of POI
-    # Inlcudes vertical, horizontal, and diagonal neighbors
-    # Stores data as Boolean values
-    mask = R < radius
-    
-    # Give the position of neighboring pixels
-    # 0    1 ........ 359 (row 1 image)
-    # 360  361 ...... 719 (row 2 of image)
-    neighbor_pixel_positions = (Y[mask] * width) + X[mask]
-    return neighbor_pixel_positions
+    return flood_fill(image, (x, y), newval)
 
-def linear_to_array(neighbor, width):
-    """ Convert pixel position (linear) to pixle position (2D array) """
-    row = (neighbor // width)
-    column = (neighbor % width)
-    return row, column
-
-def array_to_linear(image):
-    """ Convert pixel position (2D array) to pixel position (linear) """
-    lst = []
-    for i in range(len(image)):
-        for j in range(len(image[i])):
-            current = image[i][j]
-            lst.append(current)
-    return np.array(lst)
-
-def detect(linear_image, neighbors):
-    q = queue.Queue()
-    cell = []
-    for i in range(len(neighbors)):
-        pixel = linear_image[neighbors[i]]
-        if pixel == "non-border":
-            cell.append(pixel)
-    return cell
-
-# def cell_detection(image, radius, width, height):
-#     pass
-#     # instantiate a queue object
-#     q = queue.Queue()
+def define_cell(image, centroid_x, centroid_y, newval):
+    """ Obtain indices of pixels within a defined border. Area inside border
+        must be one color/value
+        Parameters:
+            image: 2D numpy array of image
+            centroid_x, centroid_y: integer indices of cell centroid's pixel location
+            newval: the replacement value (integer, float, string, or bool)
+        Returns: numpy array (2 columns) of the x and y indices of each pixel
+            inside a cell border (not including the border itself)
+    """
+    # flood fill--- everything inside border is changed to newval
+    flooded_cell = flooding(image, centroid_x, centroid_y, newval)
     
-#     ls = []
-#     for k in range(10):
-#         neighbors = neighbor(image, k, radius, width, height)
-#         ls.append(neighbors)
-#         i, j = linear_to_array(neighbors, 360)
-#         # for i, j in np.ndindex(image.shape):
-#         # if image[i, j]
-#     return ls, i, j
-# ###
-#     # linear_image = array_to_linear(image)
+    # get indices of pixels inside cell border
+    result = np.where(flooded_cell == newval)
     
-#     # for pixel in linear_image:
-#     #     neighbors = neighbor(linear_image, pixel, radius, linear_image.shape[0], linear_image.shape[1])
+    # combine x and y coordinates of cell into one numpy array
+    cell_loc = np.array((result[0], result[1]), order = "F").T
+    return cell_loc
+
+def cell_dictionary(cells):
+    """ Create dictionary of cells with the dots per cell
+        Parameters:
+            cells: list of numpy arrays (pixels inside individual cells)
+        Returns: a dictionary key--> cell #
+                              value --> indices of pixel inside that cell
+    """
+    cell_dic = {}
+    for i in range(len(cells)):
+        cell_dic[i] = cells[i]            
+    return cell_dic
+
+def dot_count(dots, cells, cell_num):
+    """ Count the number of dots inside of a given cell
+        Parameters:
+            dots: a list of tuples containing the x, y indices of all dot centroids
+            cells: dictionary of cells
+                key --> cell # and value --> pixel loc inside that cell (i, j)
+            cell_num: integer representing the key of a cell of interest
+        Returns: dot count in given cell (int), list of pixels in that cell (i, j)
+    """
+    count = 0
+    pixel_lst = []
+    in_cell = []
+    
+    # get list of pixels inside cell of interest based on cell_num
+    pixels = cells.get(cell_num)
+    for i, j in pixels:
+        pixel_lst.append((i, j))
+
+    # count the number of dots inside cell of interest and create
+    # list of pixel locations of each dot inside cell of interest
+    for d in range(len(dots)):
+        for p in range(len(pixel_lst)):
+            if pixel_lst[p] == dots[d]:
+                in_cell.append(pixel_lst[p])
+                count += 1
+    return count, in_cell
+
+def dots_per_cell(cell_png, resized_filename, dots_list, R, G, B, filepath,\
+                  width=500, height=500, cell_centroids=None):
+    """ Export a csv containing mRNA dot signals per cell
+        Parameters:
+            cell_png: filename string of png image
+            resized_filename: filename string for resized image
+            cell_centroids: list of tuples containing indices for cell centroids (i,j)
+            dots_list: list of tuples containing indices for dot centroids (i,j)
+            R, G, B: known RGB values of background/non-border color
+            filepath: filepath to save csv, a string, must follow format below
+                "r'Path where you want to store the csvfile\Csvfilename.csv'"
+            width, height (optional): desired image size (in pixels)
+        Returns: a csv is created with dots per cell data
+    """    
+    # resize image --- larger image = better resolution but longer runtime
+    resized = resize(cell_png, width, height, resized_filename)
+    
+    # open resized image using Pillow
+    resized_image = PIL.Image.open(resized)
+    
+    # convert image to numpy array
+    image_sequence = resized_image.getdata()
+    image_array = np.array(image_sequence)
+    
+    # R, G, B values used to define cell borders: border = 1 non-border = 0
+    cell_borders = define_border(image_array, R, G, B)
+    
+    # reshape array to mirror the dimensions of image (500 x 500) or user input
+    reshaped_cell_borders = reshape(cell_borders, width)
+    
+    """ create function: defines the borders of each cell given the centroid
+        of each cell as a list of tuples
+    """
+    cell_1 = define_cell(reshaped_cell_borders, 5, 5, 2)
+    cell_2 = define_cell(reshaped_cell_borders, 20, 15, 2)
+    
+    """ create function: creates list of numpy arrays (which represent
+            the pixels inside of each cell)
+    """
+    # create a list of numpy arrays, each element in list is np array of pixels
+    # in a single cell
+    cell_lst = [cell_1, cell_2]
+    
+    # create a dictionary of cells: key --> cell # and value --> pixels in cell
+    cell_dic_try = cell_dictionary(cell_lst)
+    
+    """ create: function: determines the dot count of each cell given
+            an array of flood_filled cell outlines, cell dictionary,
+            and key of cell of interest
+    """
+    two_dots = dots_list
+    dots_1 = dot_count(two_dots, cell_dic_try, 0)
+    dots_2 = dot_count(two_dots, cell_dic_try, 1)
+    
+    """ create function: makes list of dot count per cell
+    """
+    # make df --> csv of dots per cell
+    dot_count_list = [dots_1[0], dots_2[0]]
+    
+    # save dot per cell data as a csv file
+    save_dots_csv(cell_dic_try, dot_count_list, filepath)
+
+def save_dots_csv(cell_dic, dot_count_list, filepath):
+    """ Export a csv of dots per cell data
+        Parameters:
+            cell_number: a dictionary, key --> cell #
+                                       value --> pixel locations inside each cell
+            dot_counts: list of dots per cell (same order as dicitonary cell #)
+            filepath: a string, "r'Path where you want to store the csvfile\Csvfilename.csv'"
+        Returns: nothing, a csv file is saved to specified file path
+    """
+    # get the cell numbers from keys of cell_dic
+    cell_number = []
+    for key, val in cell_dic.items():
+        cell_number.append(key)
         
-#         # for i in range(len(neighbors)):
-#         #     if neighbors[i] == "non-border":
-#         #         q.put(neighbors[i])
-        
-#     # return q, neighbors
-
-# ###
-#     # for row in image:
-#     #     for pixel in row:
-#     #         neighbors = neighbor(image, int(pixel), radius, width, height)
-
-#     #     # for pix in neighbors:
-#     #     #     for i in range(len(pix)):
-#     #     #         row, col = convert_position(pix[i], width)
-#     #     #         if image[row][col] ==  "non-border":
-#     #     #             q.put(pix[i])
-#     # return neighbors
-
-
+    # create a df with 2 columns: cell # and # of dots
+    dots_per_cell = pd.DataFrame()
+    dots_per_cell["Cell #"] = cell_number
+    dots_per_cell["# dots"] = dot_count_list
+    
+    # convert df to csv and save to specified filepath
+    dots_per_cell.to_csv(filepath, index = False)
 
 def main():
-    # """read in png image"""
-    # # image = mpimg.imread("small_test_cell_red.png")
-    # # plt.imshow(image)
-    # # plt.axis("off")
-    
-    # original = "small_test_cell_red.png"
-    
-    # # set desired dimensions of image to analyze
-    # width, height = (360, 360)
-    
-    # # resize image to 360 x 360 pixels (the size of images used in project)
-    # new_red_cell = resize(original, width, height, "test_cell_360x.png")
-    
-    # # open resized image using Pillow
-    # cell_image = PIL.Image.open(new_red_cell)
-    
-    # # convert image to numpy array
-    # image_sequence = cell_image.getdata()
-    # image_array = np.array(image_sequence)
-    
-    # """
-    # Create a list of the designation of each pixel: border or non-border
-    # e.g if a pixel is white, then it is "non-border", if a pixel is any color
-    # other than white, then it is "border"
-    # Note to us: could only be used with cell outlines, not an overlay of
-    # outlines on puncta/dots (unless we know the RGB values of background, cell
-    #                          outlines, and dots... then we'd have to reajust
-    #                          this function)
-    # """
-    # colors = define_border(image_array, 255, 255, 255)
-    
-    # # reshape array to mirror the dimensions of image (360 x 360)
-    # # to see the array: go to 150, 100
-    # reshaped_colors = reshape(colors, 360)
-    
-    # # make copy of array to start painting
-    # image_copy = np.copy(reshaped_colors)
-    
-    # # Get the neighbor pixels of a pixel of interest
-    # # This example finds the pixels neighboring the first pixel at location 0
-    # neighbor_pixel_loc = neighbor(image_copy, 0, 1.5, image_copy.shape[0], image_copy.shape[1])
-    # print(neighbor_pixel_loc)
-    # # print(image_copy[0][1])
-    
-    # new = convert_position(neighbor_pixel_loc[3], 360)
-    # # print(new)
-    # # print(dimensions(image_copy))
-    
-    # new2 = cell_detection(image_copy, 1.5, image_copy.shape[0], image_copy.shape[1])
-    # print(len(new2))
-    
-    """
-    NOTE: Now that we have the color/designation of each pixel as border vs
-    non-border, we can work on making a paint/fill algorithm that defines
-    the pixels that belong to each cell in an image.
-    
-    I've used a simple image of a single red cell for this code, but we can
-    create more complex sample images before we try the actual cell outlines
-    
-    The function Neighbor can be used to find neighboring pixels.
-    Turn into a class to be used or a method in a class.
-    """
+    pass
 
 if __name__ == "__main__":
     # main()
-    """read in png image"""
-    # image = mpimg.imread("small_test_cell_red.png")
-    # plt.imshow(image)
-    # plt.axis("off")
-    
-    original = "small_test_cell_red.png"
-    # original = "C4_SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001_otlines.png"
-    
-    # set desired dimensions of image to analyze
-    width, height = (360, 360)
-    
-    # resize image to 360 x 360 pixels (the size of images used in project)
-    new_red_cell = resize(original, width, height, "test_cell_360x.png")
-    
-    # open resized image using Pillow
-    cell_image = PIL.Image.open(new_red_cell)
-    
-    # convert image to numpy array
-    image_sequence = cell_image.getdata()
-    image_array = np.array(image_sequence)
-    
+
+    """ try with two_cell.png image --- works!
     """
-    Create a list of the designation of each pixel: border or non-border
-    e.g if a pixel is white, then it is "non-border", if a pixel is any color
-    other than white, then it is "border"
-    Note to us: could only be used with cell outlines, not an overlay of
-    outlines on puncta/dots (unless we know the RGB values of background, cell
-                             outlines, and dots... then we'd have to reajust
-                             this function)
-    255, 0, 0 = red
+    # cell outline file being used and desired resized filename
+    cell_png = "two_cells.png"
+    resized_filename = "two_cells_360x.png"
+    
+    # random dot centroid list I made by looking at the numpy array of the cell image
+    # the dot centroids are either in one cell, the other cell, or not in a cell
+    dots_list = [(7,4), (19,3), (15,9), (10, 7), (19, 16), (20, 13), (21, 15), (6,4)]
+    
+    # the color white (the background color of the test image used)
+    R, G, B = 255, 255, 255
+    
+    """ reevaluate this csv saving method--- only works on Kayla's computer """
+    # where the csvfile is being saved
+    # filepath = r'FISH-Image-Analysis\analysis_output\dots_per_cell_twocell_test.csv'
+    filepath = r'C:\Users\kayla\project\FISH-Image-Analysis\analysis_output\dots_per_cell_twocell_test.csv'
+    
+    # calling this function saves a csv file of dots per cell data
+    dots_per_cell(cell_png, resized_filename, dots_list, R, G, B, filepath)
+
+
+    """ try with multi_cell_test.png image --- not working yet
+        more functions have to be implemented for dots per cell
     """
-    colors = define_border(image_array, 255, 255, 255)
+    # # cell outline file being used and desired resized filename
+    # cell_png = "multi_cell_test.png"
+    # resized_filename = "multi_cell_360x.png"
     
-    # reshape array to mirror the dimensions of image (360 x 360)
-    # to see the array: go to 150, 100
-    reshaped_colors = reshape(colors, 360)
+    # # random dot centroid list I made by looking at the numpy array of the cell image
+    # # the dot centroids are either in one cell, the other cell, or not in a cell
+    # dots_list = TBD
     
+    # # the color white (the background color of the test image used)
+    # R, G, B = 255, 255, 255
     
-    # for row in reshaped_colors:
-    #       for pixel in row:
-    #         if pixel == 1:
-    #             print('dot pixel')
-                
+    # # where the csvfile is being saved
+    # filepath = r'C:\Users\kayla\.spyder-py3\dots_per_cell_multicell_test.csv'
     
-    for i in range(len(reshaped_colors)):
-        for j in range(len(reshaped_colors[i])):
-            if reshaped_colors[i][j] == 1:
-                print(str(i) + ',' + str(j))
-
-
-    
-    # make copy of array to start painting
-    image_copy = np.copy(reshaped_colors)
-    
-    # Get the neighbor pixels of a pixel of interest
-    # This example finds the pixels neighboring the first pixel at location 0
-    neighbor_pixel_loc = neighbor(image_copy, 0, 1.5, image_copy.shape[0], image_copy.shape[1])
-    # print(neighbor_pixel_loc)
-    # print(len(neighbor_pixel_loc))
-    # print(image_copy[0][1])
-
-    # new = linear_to_array(neighbor_pixel_loc[3], 360)
-    # print(new)
-    # print(dimensions(image_copy))
-    
-    # new2 = array_to_linear(image_copy)
-    # print(new2)
-
-    # new3 = cell_detection(image_copy, 1.5, image_copy.shape[0], image_copy.shape[1])
-    # print(new3)
-    
-    # new4 = detect(new2, neighbor_pixel_loc)
-
-#####start of flood fill tests
-    # flood fill red test cell--- border == 1, else == 0
-    flooded_cell = flooding(reshaped_colors, 270, 190, 1)
-    
-    # get the indicies of nonzero (aka cell+border) pixels; looked at source code for flood_fill
-    cell_x, cell_y = np.nonzero(flooded_cell)
-    
-    # combine x and y coordinates of cell into one numpy array
-    cell_loc = np.array((cell_x, cell_y), order = "F").T
-    
-    # used define_cell function to get the indicies of pixels inside cell
-    # same as above but now callable with function
-    test = define_cell(reshaped_colors, 270, 190, 1)
-
-################## dots 
-    # dots = "dots_plot.png"
-    # resized_dots = resize(dots, width, height, "dots_resized.png")
-    # dots_image = PIL.Image.open(resized_dots)
-    
-    # # convert image to numpy array
-    # dot_image_sequence = dots_image.getdata()
-    # dot_image_array = np.array(dot_image_sequence)
-    
-    # dots_color = define_dots(dot_image_array, 0, 0, 0)
-    
-    # reshaped_dots_color = reshape(dots_color, 360)
-    
-    # # for row in reshaped_dots_color:
-    # #      for pixel in row:
-    # #         if pixel == 2:
-    # #             print('dot pixel')
-
-
-    # dots_image_copy = np.copy(reshaped_dots_color)
-    
-    # # Get the neighbor pixels of a pixel of interest
-    # # This example finds the pixels neighboring the first pixel at location 0
-    # neighbor_dots = neighbor(dots_image_copy, 5, 1.5, image_copy.shape[0], image_copy.shape[1])
-    # # print(neighbor_dots)
-    # # print(len(neighbor_dots))
+    # # calling this function saves a csv file of dots per cell data
+    # dots_per_cell(cell_png, resized_filename, dots_list, R, G, B, filepath)
     
     
+    """ after getting multi_cell_test.png to work, try with real cell outline,
+        cell centroids, and dot centroids
+    """
+    # # cell outline file being used and desired resized filename
+    # cell_png = [insert cell outline filename]
+    # resized_filename = [insert desired filename of resized image]
     
-   
+    # # random dot centroid list I made by looking at the numpy array of the cell image
+    # # the dot centroids are either in one cell, the other cell, or not in a cell
+    # dots_list = [the dot centroid lst of tuples output]
+    
+    # # the color black (the background color of the test image used)???
+    # R, G, B = 0, 0, 0
+    
+    # # where the csvfile is being saved
+    # filepath = r'FISH-Image_Analysis\analysis_output\dots_per_cell_multicell_test.csv'
+    
+    # # calling this function saves a csv file of dots per cell data
+    # dots_per_cell(cell_png, resized_filename, dots_list, R, G, B, filepath)
