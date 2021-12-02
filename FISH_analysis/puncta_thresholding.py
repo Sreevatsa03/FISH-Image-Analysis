@@ -20,10 +20,10 @@ class Puncta_Thresholding:
         plt.imshow(RGB_img, 'gray', vmin = 0, vmax = 255)
         plt.title(title)
         plt.axis('off')
-        plt.savefig(('thresholding_output/'.strip() + str(title).strip() + '.png'.strip()))
+        plt.savefig(('thresholding_output/'.strip() + str(title).strip().lower() + '.png'.strip()))
 
     def watershed(self, output = "plot"):
-        img = self.file_to_image(self.filename)
+        img = self.file_to_image()
         gray = self.image_to_grayscale(img)
         ret, thresh = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         masked = cv2.bitwise_and(img, img, mask = thresh)
@@ -34,7 +34,7 @@ class Puncta_Thresholding:
         else:
             cv2.imshow("Watershed", masked)
             cv2.waitKey(0)
-            cv2.imwrite("watershed.png", masked)
+            cv2.imwrite("thresholding_output/watershed.png", masked)
 
     # kernel size is how blurry an image is (must be an odd number)
     def gaussian_blur(self, kernel_size):
@@ -48,10 +48,10 @@ class Puncta_Thresholding:
         cv2.imshow("Gaussian Smoothing", dst)
         cv2.waitKey(0) # waits until a key is pressed
         cv2.destroyAllWindows() # destroys the window showing image
-        cv2.imwrite("gaussian_blur.png", dst)
+        cv2.imwrite("thresholding_output/gaussian_blur.png", dst)
 
     def binary_threshold(self, threshold, output = "plot"):
-        image = self.file_to_image(self.filename)
+        image = self.file_to_image()
         gray = self.image_to_grayscale(image)
         ret, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
         masked = cv2.bitwise_and(image, image, mask=thresh)
@@ -63,7 +63,7 @@ class Puncta_Thresholding:
             cv2.imshow("Binary Threshold", masked)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
-            cv2.imwrite("binary_threshold.png", masked)
+            cv2.imwrite("thresholding_output/binary_threshold.png", masked)
             
         return thresh   
   
@@ -86,14 +86,14 @@ class Puncta_Thresholding:
             cv2.imshow('Input', img)
             cv2.imshow('Erosion', img_erosion)
             cv2.imshow('Dilation', img_dilation) 
-            cv2.imwrite("erosion.png", img_erosion)
+            cv2.imwrite("thresholding_output/erosion.png", img_erosion)
             cv2.waitKey(0)
 
-    def get_centroids(self, image, threshold):
+    def get_centroids(self, threshold):
         centroids = []
-        img = self.file_to_image(image)
+        img = self.file_to_image()
         mask = np.zeros(img.shape, dtype=np.uint8)
-        thresh = self.binary_threshold(image, threshold)
+        thresh = self.binary_threshold(threshold)
         
         contours = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
 
@@ -116,7 +116,7 @@ class Puncta_Thresholding:
             cv2.circle(mask, (cX, cY), 1, (255, 255, 255), -1)
         
         #display the image
-        cv2.imwrite('centroids.png', mask)
+        cv2.imwrite('thresholding_output/centroids.png', mask)
         cv2.waitKey(0)
         
         return centroids
