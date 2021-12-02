@@ -2,7 +2,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
+
 class Puncta_Thresholding:
+    """
+    Instantiate thresholing of puncta in spinal cord cell image\n
+    Various types of threshoding can be performed on the given image
+
+    :param dots: cleaned (thresholded dots) FISH image
+    :type mask: .tif
+    :type dots: .tif
+    """
 
     def __init__(self, filename):
         self.filename = filename
@@ -17,10 +26,12 @@ class Puncta_Thresholding:
     # Representing the output as a plot
     def plot_image(self, image, title = ''):
         RGB_img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        plt.imshow(RGB_img, 'gray', vmin = 0, vmax = 255)
-        plt.title(title)
-        plt.axis('off')
-        plt.savefig(('thresholding_output/'.strip() + str(title).strip().lower() + '.png'.strip()))
+        fig = plt.figure(figsize=(5, 5), frameon=False)
+        ax = plt.Axes(fig, [0., 0., 1., 1.])
+        ax.set_axis_off()
+        fig.add_axes(ax)
+        plt.imshow(RGB_img, 'gray', vmin = 0, vmax = 255, aspect='auto')
+        fig.savefig(('thresholding_output/'.strip() + str(title).strip().lower() + '.png'.strip()))
 
     def watershed(self, output = "plot"):
         img = self.file_to_image()

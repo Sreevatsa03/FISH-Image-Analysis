@@ -2,12 +2,11 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import cv2
 from PIL import Image
-from numpy import mask_indices
 
 
 class Puncta_Analysis:
     """
-    Instantiate analysis of spinal cord cell image\n
+    Instantiate analysis of puncta in spinal cord cell image\n
     Various analyses can be performed on the given image
     
     :param mask: mask of FISH image
