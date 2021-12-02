@@ -20,7 +20,7 @@ class Puncta_Analysis:
         self.dots = dots
         self.mask_edges
     
-    def tif_to_png(self):
+    def tif_to_png(self) -> None:
         """
         Convert given mask and dots files from .tif to .png\n
         Store converted mask as 'mask_plot.png' and dots as 'dots_plot.png'
@@ -46,7 +46,7 @@ class Puncta_Analysis:
         fig.savefig('analysis_output/dots_plot.png')
         self.dots = 'analysis_output/dots_plot.png'
     
-    def mask_edges(self):
+    def mask_edges(self) -> None:
         """
         Perform edge detection on mask\n
         Used in preparation for overlay of mask onto dots image
@@ -65,7 +65,7 @@ class Puncta_Analysis:
         plt.savefig('analysis_output/mask_edges.png')
         self.mask_edges = 'analysis_output/mask_edges.png'
         
-    def make_transparent(self):
+    def make_transparent(self) -> None:
         """
         Make edge_detected mask into image with transparent background\n
         Used in preparation for overlay of mask onto dots image
@@ -88,11 +88,15 @@ class Puncta_Analysis:
         img.save('analysis_output/mask_edges.png', "PNG")
         self.mask_edges = 'Images/SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001/Input/C4_SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001_otlines.png'
         
-    def overlay(self):
+    def overlay(self) -> None:
         """
         Overlay mask with only edges on top of image of thresholded dots\n
         Will be able to perform analyses on outputed image
+        Save overlay as image
         """
+
+        # convert mask and dots to png
+        self.tif_to_png()
         
         # get the edges_only mask and make transparent
         self.mask_edges()
