@@ -30,25 +30,28 @@ class Puncta_Thresholding:
         
         if output == "plot":
             self.plot_image(masked, "Watershed")
-        
         else:
             cv2.imshow("Watershed", masked)
             cv2.waitKey(0)
+            cv2.destroyAllWindows()
             cv2.imwrite("thresholding_output/watershed.png", masked)
 
     # kernel size is how blurry an image is (must be an odd number)
-    def gaussian_blur(self, kernel_size):
+    def gaussian_blur(self, kernel_size, output = "plot"):
         # read image
         src = cv2.imread(self.filename, cv2.IMREAD_UNCHANGED)
         
         # apply guassian blur on src image
         dst = cv2.GaussianBlur(src,(kernel_size, kernel_size),cv2.BORDER_DEFAULT)
         
-        # display output image as pop up window
-        cv2.imshow("Gaussian Smoothing", dst)
-        cv2.waitKey(0) # waits until a key is pressed
-        cv2.destroyAllWindows() # destroys the window showing image
-        cv2.imwrite("thresholding_output/gaussian_blur.png", dst)
+        if output == "plot":
+            cv2.imwrite("thresholding_output/gaussian_blur.png", dst)
+        else:
+            # display output image as pop up window
+            cv2.imshow("Gaussian Smoothing", dst)
+            cv2.waitKey(0) # waits until a key is pressed
+            cv2.destroyAllWindows() # destroys the window showing image
+            cv2.imwrite("thresholding_output/gaussian_blur.png", dst)
 
     def binary_threshold(self, threshold, output = "plot"):
         image = self.file_to_image()
@@ -57,8 +60,7 @@ class Puncta_Thresholding:
         masked = cv2.bitwise_and(image, image, mask=thresh)
         
         if output == "plot":
-            self.plot_image(masked,'Binary Threshold')  
-            
+            self.plot_image(masked,'Binary_Threshold')  
         else:
             cv2.imshow("Binary Threshold", masked)
             cv2.waitKey(0)
