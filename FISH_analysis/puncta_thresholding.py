@@ -20,27 +20,7 @@ class Puncta_Thresholding:
         plt.imshow(RGB_img, 'gray', vmin = 0, vmax = 255)
         plt.title(title)
         plt.axis('off')
-        plt.savefig(('thresholding_output'.strip() + str(title).strip() + '.png'.strip()))
-
-    # def save_image(image):
-    #     # TODO: figure out how to save imagex
-    #     # Image path
-    #     # image = cv2.imread('C:/Users\19787\.spyder-py3\DS 2500\thresholding\image1.png')
-        
-    #     # # Image directory
-    #     # directory = r'C:\Users\19787\Desktop'
-
-    #     # img = cv2.imread('D:/image-1.png')
-    #     #do some transformations on img
-        
-    #     #save matrix/array as image file
-    #     isWritten = cv2.imwrite('D:/image-2.png', image)
-        
-    #     if isWritten:
-    #         print('Image is successfully saved as file.')
-            
-    # watershed 
-    #https://opencv24-python-tutorials.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_watershed/py_watershed.html
+        plt.savefig(('thresholding_output/'.strip() + str(title).strip() + '.png'.strip()))
 
     def watershed(self, output = "plot"):
         img = self.file_to_image(self.filename)
@@ -54,9 +34,7 @@ class Puncta_Thresholding:
         else:
             cv2.imshow("Watershed", masked)
             cv2.waitKey(0)
-
-    # gaussian blurring
-    #https://www.pyimagesearch.com/2021/04/28/opencv-thresholding-cv2-threshold/
+            cv2.imwrite("watershed.png", masked)
 
     # kernel size is how blurry an image is (must be an odd number)
     def gaussian_blur(self, kernel_size):
@@ -67,27 +45,29 @@ class Puncta_Thresholding:
         dst = cv2.GaussianBlur(src,(kernel_size, kernel_size),cv2.BORDER_DEFAULT)
         
         # display output image as pop up window
-        image = cv2.imshow("Gaussian Smoothing", dst)
+        cv2.imshow("Gaussian Smoothing", dst)
         cv2.waitKey(0) # waits until a key is pressed
         cv2.destroyAllWindows() # destroys the window showing image
-        #save_image(image)
+        cv2.imwrite("gaussian_blur.png", dst)
 
     def binary_threshold(self, threshold, output = "plot"):
         image = self.file_to_image(self.filename)
         gray = self.image_to_grayscale(image)
-        ret, thresh1 = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
-        masked = cv2.bitwise_and(image, image, mask=thresh1)
+        ret, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
+        masked = cv2.bitwise_and(image, image, mask=thresh)
         
         if output == "plot":
             self.plot_image(masked,'Binary Threshold')  
-            #save_image(masked, name = 'TEST')
             
         else:
             cv2.imshow("Binary Threshold", masked)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
-    # Reference: https://www.geeksforgeeks.org/erosion-dilation-images-using-opencv-python/   
-    def erosion_dilation(self, iterations, output = "plot"):
+            cv2.imwrite("binary_threshold.png", masked)
+            
+        return thresh   
+  
+    def erosion(self, iterations, output = "plot"):
         img = cv2.imread(self.filename, 0)
         kernel = np.ones((5,5), np.uint8)
         # The first parameter is the original image,
@@ -106,4 +86,37 @@ class Puncta_Thresholding:
             cv2.imshow('Input', img)
             cv2.imshow('Erosion', img_erosion)
             cv2.imshow('Dilation', img_dilation) 
+            cv2.imwrite("erosion.png", img_erosion)
             cv2.waitKey(0)
+
+    def get_centroids(self, image, threshold):
+        centroids = []
+        img = self.file_to_image(image)
+        mask = np.zeros(img.shape, dtype=np.uint8)
+        thresh = self.binary_threshold(image, threshold)
+        
+        contours = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
+
+        for c in contours:
+            
+            # calculate moments for each contour
+            M = cv2.moments(c)
+            
+            # calculate x,y coordinate of center
+            if M["m00"] != 0:
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+            
+            else:
+                cX, cY = int(c[0][0][0]), int(c[0][0][1])
+            
+            coord = (cX, cY)
+            centroids.append(coord)
+            
+            cv2.circle(mask, (cX, cY), 1, (255, 255, 255), -1)
+        
+        #display the image
+        cv2.imwrite('centroids.png', mask)
+        cv2.waitKey(0)
+        
+        return centroids
