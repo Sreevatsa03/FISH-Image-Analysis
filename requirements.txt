@@ -4,3 +4,14 @@ Below is a list of python packages you should have installed before using our li
 
 matplotlib
 opencv-python
+os
+PIL
+czifile
+numpy
+cellpose
+
+"""
+Cellpose requires python 3.8 to run. It is advised you create a separate conda environment 
+for cellpose and these packages. Instructions for how to do this can be found here:
+https://github.com/MouseLand/cellpose
+"""
