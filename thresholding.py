@@ -96,19 +96,55 @@ def erosion(filename, iterations, output = "plot"):
         cv2.waitKey(0)
 
 # Reference: https://learnopencv.com/find-center-of-blob-centroid-using-opencv-cpp-python/
-def get_centroids(image, threshold):
+# old method
+# def get_centroids(image, threshold):
+#     centroids = []
+#     img = file_to_image(image)
+#     mask = np.zeros(img.shape, dtype=np.uint8)
+#     thresh = binary_threshold(image, threshold)
+    
+#     contours = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
+
+#     for c in contours:
+        
+#         # calculate moments for each contour
+#         M = cv2.moments(c)
+        
+#         # calculate x,y coordinate of center
+#         if M["m00"] != 0:
+#             cX = int(M["m10"] / M["m00"])
+#             cY = int(M["m01"] / M["m00"])
+           
+#         else:
+#             cX, cY = int(c[0][0][0]), int(c[0][0][1])
+           
+#         coord = (cX, cY)
+#         centroids.append(coord)
+        
+#         cv2.circle(mask, (cX, cY), 1, (255, 255, 255), -1)
+       
+#     #display the image
+#     cv2.imwrite('centroids.png', mask)
+#     cv2.waitKey(0)
+    
+#     return centroids
+
+# new method
+def get_centroids(image, threshold = 177, outline = False):
     centroids = []
     img = file_to_image(image)
     mask = np.zeros(img.shape, dtype=np.uint8)
-    thresh = binary_threshold(image, threshold)
-    
+    if not outline:
+        thresh = binary_threshold(image, threshold)
+    else:
+        thresh = image_to_grayscale(img)
     contours = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
 
     for c in contours:
-        
+       
         # calculate moments for each contour
         M = cv2.moments(c)
-        
+       
         # calculate x,y coordinate of center
         if M["m00"] != 0:
             cX = int(M["m10"] / M["m00"])
@@ -119,13 +155,12 @@ def get_centroids(image, threshold):
            
         coord = (cX, cY)
         centroids.append(coord)
-        
+       
         cv2.circle(mask, (cX, cY), 1, (255, 255, 255), -1)
        
-    #display the image
+   
     cv2.imwrite('centroids.png', mask)
-    cv2.waitKey(0)
-    
+   
     return centroids
 
 if __name__ == "__main__":
