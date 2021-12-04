@@ -41,7 +41,7 @@ class Segmentation:
         # initialize mask outlines
         self.outlines = ''
         
-    def make_masks(self, flow_threshold, cellprob_threshold, diameter):
+    def make_masks(self, flow_threshold, cellprob_threshold, diameter, model_type):
         """
         Run cellpose on cells image to obtain masks and save as png
         """
@@ -59,7 +59,7 @@ class Segmentation:
         plt.show()
         
         # run cellpose on image code from Carsen Stringer and colab #CITE
-        model = models.Cellpose(gpu=True, model_type='cyto') # add more model types in future
+        model = models.Cellpose(gpu=True, model_type= model_type) # add more model types in future, cytoplasm = 'cyto', nuclei = 'nuclei'
         channels = [[2,3], [0,0], [0,0]]
         for chan, filename in zip(channels, files):
             img = io.imread(filename)
@@ -91,7 +91,7 @@ class Segmentation:
             return self.masks
         
         else:
-            return print('Cells have not been segmented. Run Segmentation.make_masks(self, flow_threshold, cellprob_threshold, diameter)')
+            return print('Cells have not been segmented. Run Segmentation.make_masks(self, flow_threshold, cellprob_threshold, diameter, model_type)')
         
     def make_outlines(self):
         """
@@ -123,7 +123,15 @@ class Segmentation:
         print("Saved Outlines PNG")
         return plt.show()
 
-
+    def get_dir(self):
+        """
+        Get directory as string
+        """
+        if self.dir != '':
+            return self.dir
+        
+        else:
+            return print('Cells have not been segmented. Run Segmentation.make_masks(self, flow_threshold, cellprob_threshold, diameter, model_type)')
 
 class czi_chans:
     """ 
