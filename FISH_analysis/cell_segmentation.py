@@ -108,7 +108,7 @@ class Segmentation:
         ax = plt.Axes(fig, [0., 0., 1., 1.])
         ax.set_axis_off()
         fig.add_axes(ax)
-        ax.imshow(dat['img'], aspect='auto', cmap = cm.Greys.reversed())
+        ax.imshow(dat['img'], aspect='auto', cmap = cm.Greys.reversed(), bbox = 'tight')
         
         # plot image with outlines overlaid in red
         outlines = utils.outlines_list(dat['masks'])
