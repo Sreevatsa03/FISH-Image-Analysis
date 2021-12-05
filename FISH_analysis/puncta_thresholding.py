@@ -109,6 +109,8 @@ class Puncta_Thresholding:
             cv2.imwrite("thresholding_output/binary_threshold.png", masked)
             
         return thresh   
+    
+    
   
     def erosion(self, iterations, output = "plot"):
         img = cv2.imread(self.img, 0)

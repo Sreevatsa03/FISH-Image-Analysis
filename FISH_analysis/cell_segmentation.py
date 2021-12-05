@@ -122,7 +122,7 @@ class Segmentation:
         self.outlines = f'{self.dir}/{self.cells}_outlines.png'
         print("Saved Outlines PNG")
         return plt.show()
-
+        
     def get_dir(self):
         """
         Get directory as string
