@@ -5,12 +5,9 @@ from PIL import Image
 import matplotlib.cm
 import numpy as np
 import matplotlib.cm as cm
-import matplotlib.pyplot as plt
 import matplotlib as mpl
 mpl.rcParams['figure.dpi'] = 300
 from cellpose import models, io, plot, utils
-import os
-import matplotlib.image as mpimg
 
 class Segmentation:
     """
@@ -41,11 +38,44 @@ class Segmentation:
         # initialize mask outlines
         self.outlines = ''
         
+    def save(self, filepath, fig=None):
+        '''
+        Save the current image with no whitespace
+        Example filepath: "myfig.png" or r"C:\myfig.pdf
+        code derived from: 
+        https://stackoverflow.com/questions/11837979/removing-white-space-around-a-saved-image" 
+        '''
+        import matplotlib.pyplot as plt
+        plt.style.use('dark_background')
+        if not fig:
+            fig = plt.gcf()
+            
+        
+        plt.subplots_adjust(0,0,1,1,0,0)
+        for ax in fig.axes:
+            ax.axis('off')
+            ax.margins(0,0)
+            ax.xaxis.set_major_locator(plt.NullLocator())
+            ax.yaxis.set_major_locator(plt.NullLocator())
+        fig.savefig(filepath)
+        
     def make_masks(self, flow_threshold, cellprob_threshold, diameter, model_type):
         """
         Run cellpose on cells image to obtain masks and save as png
+        
+        Cellpose documentation: https://cellpose.readthedocs.io/en/latest/installation.html
+        
+        Flow threshold: Increase this threshold if cellpose is not returning as many masks as you’d expect. 
+        Similarly, decrease this threshold if cellpose is returning too many ill-shaped masks.      
+        
+        Mask thrsohold: Decrease this threshold if cellpose is not returning as many masks as you’d expect. 
+        Similarly, increase this threshold if cellpose is returning too masks particularly from dim areas.
+        
+        Diameter: If = None, will be estimtated (pixel size)
+        
+        Model_type: Model used during cellpose segmentation. Cytoplasm = 'cyto', Nucleus = 'nuclei'
         """
-        # daimater in pixels, estimated if diameter = None
+        # diameter in pixels, estimated if diameter = None
         # ensure parameters are correct
         if flow_threshold <= 0.1 or flow_threshold >= 1.2 or cellprob_threshold >= 6 or cellprob_threshold <= -6:
             return print('Cellprob or flow threshold is out of range. Be sure cellprob threshsold is within (-6, 6) and flow threshold is within (0.1, 1.1)')
@@ -53,12 +83,13 @@ class Segmentation:
         
         # show image to be segmented
         img = io.imread(files[-1])
-        plt.figure(figsize=(2,2))
-        plt.imshow(img)
+        fig, ax = plt.subplots(figsize=(5,5))
+        fig.subplots_adjust(0,0,1,1)
+        plt.imshow(img, aspect = 'auto')
         plt.axis('off')
         plt.show()
-        
-        # run cellpose on image code from Carsen Stringer and colab #CITE
+ 
+        # run cellpose
         model = models.Cellpose(gpu=True, model_type= model_type) # add more model types in future, cytoplasm = 'cyto', nuclei = 'nuclei'
         channels = [[2,3], [0,0], [0,0]]
         for chan, filename in zip(channels, files):
@@ -67,21 +98,19 @@ class Segmentation:
 
             # save results so you can load in gui
             io.masks_flows_to_seg(img, masks, flows, diams, filename, chan)
-
-            # save results as png
-            # io.save_to_png(img, masks, flows, filename)
         
-        # save masks in same directory as cells iamge
+        # save masks in same directory as cells image
         fig = plt.figure(figsize=(5, 5), frameon=False)
         ax = plt.Axes(fig, [0., 0., 1., 1.])
         ax.set_axis_off()
         fig.add_axes(ax)
         ax.imshow(masks, aspect='auto', cmap = cm.Greys.reversed())
-        fig.savefig(f'{self.dir}/{self.cells}_masks.png')  
+        self.save(f'{self.dir}/{self.cells}_masks.png')  
         plt.close(fig)    
         self.masks = f'{self.dir}/{self.cells}_masks.png'
         print("Saved Mask PNG")
-        return plt.show()
+        plt.show()
+
     
     def get_mask(self):
         """
@@ -95,33 +124,29 @@ class Segmentation:
         
     def make_outlines(self):
         """
-        
+        Creates outlines for cells and saves as a .png
         """
-        npy = os.path.splitext(self.cells)[0] + '_seg.npy'
+        npy = os.path.splitext(self.cells)[0] + '_seg.npy' #fix naming convention
 
         dat = np.load(npy, allow_pickle=True).item()
-
-        # plot image with masks overlaid
-        mask_RGB = plot.mask_overlay(dat['img'], dat['masks'])
-
         fig = plt.figure(figsize=(5, 5), frameon=False)
+        plt.style.use('dark_background')
         ax = plt.Axes(fig, [0., 0., 1., 1.])
         ax.set_axis_off()
         fig.add_axes(ax)
-        ax.imshow(dat['img'], aspect='auto', cmap = cm.Greys.reversed(), bbox = 'tight')
         
         # plot image with outlines overlaid in red
         outlines = utils.outlines_list(dat['masks'])
-        plt.imshow(dat['img'])
         for o in outlines:
             plt.plot(o[:,0], o[:,1], color='r')
     
-    
-        fig.savefig(f'{self.dir}/{self.cells}_otlines.png')  
+        plt.axis('off')
+        fig.savefig(f'{self.dir}/{self.cells}_outlines.png') 
+        self.save(f'{self.dir}/{self.cells}_outlines.png')  
         plt.close(fig)    
         self.outlines = f'{self.dir}/{self.cells}_outlines.png'
         print("Saved Outlines PNG")
-        return plt.show()
+        plt.show()
         
     def get_dir(self):
         """
@@ -234,4 +259,3 @@ class czi_chans:
             fig.savefig(f'{self.dir}/C{C + 1}_{self.cziname}.png') 
             plt.close(fig)    
             return print('Saved')
-        
