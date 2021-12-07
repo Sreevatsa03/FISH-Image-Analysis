@@ -6,6 +6,7 @@ from PIL import Image
 
 class Puncta_Analysis:
     """
+
     Instantiate analysis of puncta in spinal cord cell image\n
     Various analyses can be performed on the given image
     
@@ -15,7 +16,7 @@ class Puncta_Analysis:
     :type dots: .tif
     """
     
-    def __init__(self, mask, dots):
+    def __init__(self, mask, dots) -> None:
         self.mask = mask
         self.dots = dots
         self.mask_edges
@@ -91,7 +92,7 @@ class Puncta_Analysis:
     def overlay(self) -> None:
         """
         Overlay mask with only edges on top of image of thresholded dots\n
-        Will be able to perform analyses on outputed image
+        Will be able to perform analyses on outputed image\n
         Save overlay as image
         """
 

@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+from typing import Any
 
 
 class Puncta_Thresholding:
@@ -12,10 +13,10 @@ class Puncta_Thresholding:
     :type img: .tif
     """
 
-    def __init__(self, img):
+    def __init__(self, img) -> None:
         self.img = img
 
-    def plot_image(self, image, title = ''):
+    def plot_image(self, image, title = '') -> None:
         """
         Plot output of threshold as png
 
@@ -59,7 +60,7 @@ class Puncta_Thresholding:
             # 
             cv2.imwrite("thresholding_output/watershed.png", masked)
 
-    def gaussian_blur(self, kernel_size, output = "plot"):
+    def gaussian_blur(self, kernel_size, output = "plot") -> None:
         """
         Thresholding method - description needed
 
@@ -84,13 +85,14 @@ class Puncta_Thresholding:
             cv2.destroyAllWindows()
             cv2.imwrite("thresholding_output/gaussian_blur.png", dst)
 
-    def binary_threshold(self, threshold, output = "plot"):
+    def binary_threshold(self, threshold, output = "plot") -> Any:
         """
         Thresholding method - description needed
 
         :param kernel_size: determines how blurry an image is
         :param str output: determines if output will just be plotted or will be displayed in a pop up window
         :type kernel_size: odd integer
+        :return 
         """
         
         image = cv2.imread(self.img)
@@ -110,8 +112,6 @@ class Puncta_Thresholding:
             
         return thresh   
     
-    
-  
     def erosion(self, iterations, output = "plot"):
         img = cv2.imread(self.img, 0)
         kernel = np.ones((5, 5), np.uint8)
@@ -133,32 +133,42 @@ class Puncta_Thresholding:
             cv2.imwrite("thresholding_output/erosion.png", img_erosion)
             cv2.waitKey(0)
 
-    def get_centroids(self, threshold):
+    def get_centroids(self, threshold=177, outline=False, output='none'):
         centroids = []
         img = cv2.imread(self.img)
         mask = np.zeros(img.shape, dtype=np.uint8)
-        thresh = self.binary_threshold(threshold, 'none')
-        
+        if not outline:
+            thresh = self.binary_threshold(threshold, 'none')
+        else:
+            thresh = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         contours = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
 
         for c in contours:
+        
             # calculate moments for each contour
             M = cv2.moments(c)
-            
+        
             # calculate x,y coordinate of center
             if M["m00"] != 0:
                 cX = int(M["m10"] / M["m00"])
                 cY = int(M["m01"] / M["m00"])
+            
             else:
                 cX, cY = int(c[0][0][0]), int(c[0][0][1])
             
             coord = (cX, cY)
             centroids.append(coord)
-            
+        
             cv2.circle(mask, (cX, cY), 1, (255, 255, 255), -1)
         
-        #display the image
-        cv2.imwrite('thresholding_output/centroids.png', mask)
-        cv2.waitKey(0)
-        
+        if output == "plot":
+            self.plot_image(mask, 'Centroids')
+        elif output == "none":
+            return centroids
+        else:
+            cv2.imshow("Centroids", mask)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+            cv2.imwrite("thresholding_output/centroids.png", mask)
+    
         return centroids
