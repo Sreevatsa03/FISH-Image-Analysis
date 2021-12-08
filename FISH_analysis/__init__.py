@@ -1,4 +1,4 @@
 from FISH_analysis.puncta_analysis import Puncta_Analysis
 from FISH_analysis.puncta_thresholding import Puncta_Thresholding
 from FISH_analysis.cell_segmentation import Segmentation
-from FISH_analysis.cell_segmentation import czi_chans
+from FISH_analysis.cell_segmentation import CZI_Channels

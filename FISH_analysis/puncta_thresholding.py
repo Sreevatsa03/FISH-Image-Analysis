@@ -6,8 +6,8 @@ from typing import Any
 
 class Puncta_Thresholding:
     """
-    Instantiate thresholing of puncta in spinal cord cell image\ 
-    Various types of threshoding can be performed on the given image
+    Instantiate thresholding of puncta in spinal cord cell image\ 
+    Various types of thresholding can be performed on the given image
 
     :param img: FISH image
     :type img: .tif
