@@ -1,6 +1,6 @@
 import cv2
 from PIL import Image
-from puncta_thresholding import Puncta_Thresholding
+# from FISH_analysis import Puncta_Thresholding
 import numpy as np
 import PIL
 from skimage.morphology import flood_fill
