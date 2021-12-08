@@ -1,7 +1,14 @@
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 import cv2
 from PIL import Image
+from puncta_thresholding import Puncta_Thresholding
+import numpy as np
+import PIL
+from skimage.morphology import flood_fill
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+from sklearn.metrics.pairwise import euclidean_distances
+import os
 
 
 class Puncta_Analysis:
@@ -10,21 +17,23 @@ class Puncta_Analysis:
     Instantiate analysis of puncta in spinal cord cell image\n
     Various analyses can be performed on the given image
     
-    :param mask: mask of FISH image
-    :param dots: cleaned (thresholded dots) FISH image
-    :type mask: .tif
+    :param outline: outline of cells from mask of FISH image,
+        which can be created using Segmentation.make_outlines()
+    :param dots: cleaned (thresholded dots) FISH image,
+        which can be created using Puncta_Thresholding and its various thresholding functions (start with binary_threshold)
+    :type outline: .png
     :type dots: .tif
     """
     
-    def __init__(self, mask, dots) -> None:
-        self.mask = mask
+    def __init__(self, outline, dots) -> None:
+        self.outline = outline
         self.dots = dots
         self.mask_edges
     
     def tif_to_png(self) -> None:
         """
         Convert given mask and dots files from .tif to .png\n
-        Store converted mask as 'mask_plot.png' and dots as 'dots_plot.png'
+        Store converted mask as 'outline_plot.png' and dots as 'dots_plot.png'
         """
         
         # save plot of mask and store as self.mask
@@ -34,8 +43,8 @@ class Puncta_Analysis:
         ax.set_axis_off()
         fig.add_axes(ax)
         ax.imshow(im_mask, aspect='auto')
-        fig.savefig('analysis_output/mask_plot.png')
-        self.mask = 'analysis_output/mask_plot.png'
+        fig.savefig('analysis_output/outline_plot.png')
+        self.outline = 'analysis_output/outline_plot.png'
         
         # save plot of dots and store as self.dots
         im_dots = mpimg.imread(self.dots)
@@ -46,25 +55,6 @@ class Puncta_Analysis:
         ax.imshow(im_dots, aspect='auto', cmap='gray')
         fig.savefig('analysis_output/dots_plot.png')
         self.dots = 'analysis_output/dots_plot.png'
-    
-    def mask_edges(self) -> None:
-        """
-        Perform edge detection on mask\n
-        Used in preparation for overlay of mask onto dots image
-        """
-
-        # read mask using opencv
-        cv2_mask = cv2.imread(self.mask, 0)
-        
-        # detect edges and reverse black and white
-        edges_detected = cv2.Canny(cv2_mask, 1, 1)
-        ret, th2 = cv2.threshold(edges_detected, 100, 255, cv2.THRESH_BINARY_INV)
-        
-        # save plot of edges only mask
-        plt.imshow(th2, cmap='spring')
-        plt.axis('off')
-        plt.savefig('analysis_output/mask_edges.png')
-        self.mask_edges = 'analysis_output/mask_edges.png'
         
     def make_transparent(self) -> None:
         """
@@ -72,7 +62,7 @@ class Puncta_Analysis:
         Used in preparation for overlay of mask onto dots image
         """
         
-        img = Image.open(self.mask_edges)
+        img = Image.open(self.outline)
         img = img.convert("RGBA")
     
         data = img.getdata()
@@ -96,28 +86,17 @@ class Puncta_Analysis:
         Save overlay as image
         """
 
-        # convert mask and dots to png
+        # convert outline and dots to png of same size
         self.tif_to_png()
         
-        # get the edges_only mask and make transparent
-        self.mask_edges()
+        # get the cells outline and make transparent
         self.make_transparent()
         
         # open the image of the dots
         img1 = Image.open(self.dots)
         
         # open the image of the mask
-        image = Image.open(self.mask_edges)
-        resized_image = image.resize((500, 500))
-        resized_image.save('analysis_output/outline.png')
-        self.mask_edges = 'analysis_output/outline.png'
-
-        image = Image.open(self.mask_edges)
-        rotated = image.rotate(270, expand=True)
-        rotated.save('analysis_output/outline.png')
-        self.mask_edges = 'analysis_output/outline.png'
-
-        img2 = Image.open(self.mask_edges)
+        img2 = Image.open(self.outline)
         
         # paste the mask on top of the dots
         img1.paste(img2, (0,0), mask = img2)
