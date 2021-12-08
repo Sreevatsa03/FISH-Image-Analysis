@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Sun Nov 21 18:09:48 2021
 
@@ -12,13 +11,14 @@ Find neighbor pixels: https://youtu.be/RHTzPCM5vnw MonkHaus Youtube video
 Referenced source code for flood_fill
 https://thispointer.com/find-the-index-of-a-value-in-numpy-array/
 Export df as csv: https://datatofish.com/export-dataframe-to-csv/
+Directory name: https://stackoverflow.com/questions/36476659/how-to-add-a-relative-
+    path-in-python-to-find-image-and-other-file-with-a-short-p
 
 Potentially useful sites HERE:
     https://codestudyblog.com/cnb11/1123194848.html
     https://stackoverflow.com/questions/65930839/getting-a-centre-of-an-irregular-shape
     https://www.pyimagesearch.com/2021/01/20/opencv-getting-and-setting-pixels/
 """
-# from fake_puncta_thresholding import Puncta_Thresholding
 from puncta_thresholding import Puncta_Thresholding
 import numpy as np
 import PIL
@@ -27,34 +27,136 @@ from skimage.morphology import flood_fill
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-import sys
 from sklearn.metrics.pairwise import euclidean_distances
+import os
 
-def explore_image(cell_png):
-    """ Explore properties of an image (e.g., size, colors, etc.)
+def file_path_name(abs_dir, folder, relative_path, filename):
+    """ Create filepath to save csv into
         Parameters:
-        Returns:
+            abs_dir: string, the directory
+            folder: string, the folder in the directory
+            relative_path: string, the relative path once inside the folder
+            filename: string, name of csv to be saved
+        Returns: string, the file path of the csv to be saved
     """
-    pass
+    script_dir = os.path.dirname(abs_dir)
+    fol = folder
+    rel_path = relative_path
+    abs_file_path = os.path.join(script_dir, fol, rel_path)
+    current_file ="dots_per_cell_" + filename +".csv"
+    return abs_file_path+"\\"+current_file
 
-def resize(image, width, height, newfile):
-    """ Resize image to desired width and height (in pixels)
+def resize(image_array, width, height, newfile):
+    """ Resize image to desired width and height in pixels
         Parameters:
             image: numpy array of an image
-            width, height: desired width and height of image (in pixels)
-            newfile: a string, the name for the resized image
+            width, height: desired width and height of image in pixels
+            newfile: a string, the filename for the resized image
         Returns: filename of resized image
     """
-    image = Image.open(image)
+    image = Image.open(image_array)
     resized_image = image.resize((width, height))
     resized_image.save(newfile)
     return newfile
 
+def display_img(image, inputtype = "numpy", outputtype = "plt", colormap="gray"):
+    """ Display numpy array or png using matplotlib
+        Parameters:
+            image: numpy array or png image
+            inputtype (optional): "numpy" or "png"
+            outputtype (optional): "numpy" or "png"
+            colormap (optional): string for desired color map
+        Returns:
+    """
+    if inputtype == "numpy":
+        img = image
+    elif inputtype == "png":
+        img = mpimg.imread(image)
+    plt.imshow(img, cmap="gray")
+    
+    if outputtype == "plt":
+        plt.show()
+    elif (outputtype == "numpy") and (inputtype == "png"):
+        img = mpimg.imread(image)
+        return img
+    # plt.savefig("analysis_output/numpy_image.png")
+    # plt.show()
+    
+def clean_centroids(lst):
+    """ Remove duplicate centroids for same cell
+        Parameters: list of (i,j) centroid index locations
+        Returns: 2D numpy array of unique cell centroid i,j index locations
+    """
+    return np.array(list(set(lst)))
+    
+def euclidean_distance(array):
+    """ Calculate euclidean distance
+        Parameters: an 2D array of (i,j) indices sorted by either i or j
+        Returns: 2D array of euclidean dist between each pair of (i,j) indices
+    """
+    return euclidean_distances(array,array)
+
+def remove_non_centroids(array, euclideans, threshold = 50):
+    """ Remove centroids that are too close to accurately depict separate centroids
+        Parameters:
+            array: 2D array of (i,j) index locations sorted by i or j
+            euclideans: 2D array of euclidean dist between each pair of (i,j) indices
+            threshold (optional): integer pixel distance between two centroids
+                smaller threshold = less centroids eliminated
+                larger threshold = more centroids eliminated
+        Returns: an array of centroids that are unique to the object it represents
+    """
+    indices = []
+    distances = []
+    for i in range(len(euclideans)):
+        for j in range(len(euclideans[i])):
+            if (euclideans[i][j] <= threshold) and (euclideans[i][j] != 0):
+                indices.append(i)
+                distances.append(euclideans[i][j])
+
+    indices = list(set(indices))
+    array = np.delete(array, indices, axis=0)
+    return array
+
+def refine_cell_centroids(cell_png, width, height, threshold, newfile):
+    """ Refine the cell centroids returned from Puncta_Thresholding.get_centroids()
+        Parameters:
+            cell_png: filepath for cell outline image
+            width, height: desired dimensions of resized image in pixels
+            threshold: integer from [0, 255]
+                all pixel values below threshold become 0 (black)
+                all pixel values above threshold become 255 (white)
+            newfile: string name for resized image
+        Returns: a list of cell centroid indices (i,j)
+    """
+    resized_cell_outline = resize(cell_png, width, height, newfile)
+    cell_centroids = Puncta_Thresholding(resized_cell_outline).get_centroids(threshold)
+    clean_cell_centroids = clean_centroids(cell_centroids)
+    sorted_array = clean_cell_centroids[np.argsort(clean_cell_centroids[:,1])]
+    sorted_euclideans = euclidean_distance(sorted_array)
+    nontrivial_cells = remove_non_centroids(sorted_array, sorted_euclideans)
+    return list(map(tuple, nontrivial_cells))
+
+def refine_dot_centroids(dots_png, width, height, threshold, newfile):
+    """ Refine the dot centroids returned from Puncta_Thresholding.get_centroids()
+        Parameters:
+            dots_png: filepath for dots image
+            width, height: desired dimensions of resize image in pixels
+            threshold: integer from [0, 255]
+                all pixel values below threshold become 0 (black)
+                all pixel values above threshold become 255 (white)
+            newfile: string name for resized image
+        Returns: a list of dot centroid indices (i,j)
+    """
+    resized_dots = resize(dots_png, width, height, newfile)
+    dot_centroids = Puncta_Thresholding(resized_dots).get_centroids(threshold)
+    return dot_centroids
+
 def define_border(image_array, R, G, B):
     """ Differentiate between border and non-border based on pixel color of
-            non-border pixels (all non-border must have same RGB)
+            non-border pixels (all non-border pixels must have same RGB)
         Parameters:
-            image array: a numpy array of the image
+            image_array: numpy array of the image
             R, G, B: known RGB values of non-border color
         Returns: 1D numpy array of pixel designation
             border pixel = 1 and non-border pixel = 0
@@ -77,7 +179,8 @@ def reshape(image_array, width):
     return np.reshape(image_array, (-1, width))
 
 def flooding(image, x, y, newval):
-    """ Flood the area inside of a cell with a new value
+    """ Flood the area inside of a cell with a new value given its centroid
+        coordinates
         Parameters:
             image: 2D numpy array of image
             x, y: integer indices of cell centroid's pixel location
@@ -95,10 +198,10 @@ def define_cell(image, centroid_x, centroid_y, newval):
             centroid_x, centroid_y: integer indices of cell centroid's pixel location
             newval: the replacement value (integer, float, string, or bool)
         Returns: numpy array (2 columns) of the x and y indices of each pixel
-            inside a cell border (not including the border itself);
-            size of the cell in pixels as an integer
+            inside a cell border (not including the border itself); and the
+            size of the cell in pixels
     """
-    # flood fill--- everything inside border is changed to newval
+    # flood_fill--- everything inside border is changed to newval
     flooded_cell = flooding(image, centroid_x, centroid_y, newval)
     
     # get indices of pixels inside cell border
@@ -110,11 +213,11 @@ def define_cell(image, centroid_x, centroid_y, newval):
     return cell_loc, cell_size
 
 def cell_dictionary(cells):
-    """ Create dictionary of cells with the dots per cell
+    """ Create dictionary of cell #'s with the pixels inside each cell
         Parameters:
             cells: list of numpy arrays (pixels inside individual cells)
         Returns: a dictionary key--> cell #
-                              value --> indices of pixel inside that cell
+                              value --> indices of pixels inside that cell
     """
     cell_dic = {}
     for i in range(len(cells)):
@@ -126,65 +229,37 @@ def define_multiple_cells(cell_borders, cell_centroids, newval=2):
         belong to which cells
         Parameters:
             cell_borders: 2D numpy array where cell borders = 1 and background = 0
-            cell_centroids: list of tuples containing (i,j) indices of
-                pixel locations of the centroid of each cell in the image
+            cell_centroids: list of tuples (i,j), the index locations of
+                each cell centroid in the image
             newval (optional): the new value to flood each cell with.
                 Cannot be the same as preexisting border or background values
         Returns: a dictionary of numpy arrays, each of which contains the
             pixel locations (i,j) of pixels inside of a single cell;
-            and a list of the sizes of the cells
+            and a list of the sizes of the cells (integers)
     """
     cell_lst = []
     cell_size_lst = []
+    
+    # for each cell centroid, define the pixels inside the cell and determine
+    # its size
     for (i, j) in cell_centroids:
         cell_n, cell_n_size = define_cell(cell_borders, i, j, newval)
         cell_lst.append(cell_n)
         cell_size_lst.append(cell_n_size)
     cell_dic = cell_dictionary(cell_lst)
-    
-    # # Full progress bar during long loop:
-    # scan_wavelengths = range(0,1000000)  # the variable being varied
-    # nWLs = len(scan_wavelengths)  # how many steps in the loop
-    
-    # # Progress Bar setup:
-    # ProgMax = 20    # number of dots in progress bar
-    # if nWLs<ProgMax:   ProgMax = nWLs   # if less than 20 points in scan, shorten bar
-    # print("|" +    ProgMax*"-"    + "|     define_multiple_cells() progress")
-    # sys.stdout.write('|'); sys.stdout.flush();  # print start of progress bar
-    # nProg = 0   # fraction of progress
-    
-    # # The main loop:
-    # for step,wavelength   in   enumerate(scan_wavelengths):
-    #     ''' `step` goes from 0-->N during loop'''
-    
-    #     cell_lst = []
-    #     cell_size_lst = []
-    #     for (i, j) in cell_centroids:
-    #         cell_n, cell_n_size = define_cell(cell_borders, i, j, newval)
-    #         cell_lst.append(cell_n)
-    #         cell_size_lst.append(cell_n_size)
-    #     cell_dic = cell_dictionary(cell_lst)
-    
-    #     # update progress bar:
-    #     if ( step >= nProg*nWLs/ProgMax ):
-    #         '''Print dot at some fraction of the loop.'''
-    #         sys.stdout.write('*'); sys.stdout.flush();  
-    #         nProg = nProg+1
-    #     if ( step >= nWLs-1 ):
-    #         '''If done, write the end of the progress bar'''
-    #         sys.stdout.write('|     done  \n'); sys.stdout.flush(); 
     return cell_dic, cell_size_lst
         
 def dot_count(dots, cells, cell_num):
-    """ Count the number of dots inside of a given cell
+    """ Count the number of dots inside of a single, specified cell
         Parameters:
-            dots: a list of tuples containing the x, y indices of all dot centroids
+            dots: a list of tuples containing the (i,j) indices of all dot centroids
             cells: dictionary of cells
-                key --> cell # and value --> pixel loc inside that cell (i, j)
+                key --> cell #
+                value --> (i, j) indices of pixels inside that cell 
             cell_num: integer representing the key of a cell of interest
-        Returns: dot count in given cell (int), list of pixels in that cell (i, j)
+        Returns: dot count in given cell (int), list of pixels in that cell (i,j)
     """
-    count = 0
+    dot_count = 0
     pixel_lst = []
     in_cell = []
     
@@ -199,19 +274,19 @@ def dot_count(dots, cells, cell_num):
         for p in range(len(pixel_lst)):
             if pixel_lst[p] == dots[d]:
                 in_cell.append(pixel_lst[p])
-                count += 1
-    return count, in_cell
+                dot_count += 1
+    return dot_count, in_cell
 
 def dot_count_multiple_cells(dot_centroids, cell_dictionary):
-    """ k
+    """ Count the number of dots in each cell for all cells in an image
         Parameters:
-            dot_centroids: a list of tuples containing (i,j) indices of
-                pixel locations of the centroid of each dot in the image
-            cell_dictionary: a dictionary of numpy arrays, each of which contains the
-            pixel locations (i,j) of pixels inside of a single cell
-        Returns: a list of integers, each represents the dot count for a single
-            cell in the image, follows the order of given cell_dictionary
-            i.e. index=0 in dot_count_list corresponds to cell 0 in cell_dictionary
+            dot_centroids: a list of tuples containing the (i,j) indices of
+                all dot centroids
+            cell_dictionary: dictionary of cells
+                key --> cell #
+                value --> (i, j) indices of pixels inside that cell 
+        Returns: a list of dot count per cell (ints) (follows cell# order of cell_dictionary);
+            and list of (i,j) index locations of dots in each cell
     """
     dot_count_list = []
     dot_positions = []
@@ -221,92 +296,14 @@ def dot_count_multiple_cells(dot_centroids, cell_dictionary):
         dot_positions.append(dots_n[1])
     return dot_count_list, dot_positions
 
-def dots_per_cell(cell_png, resized_filename, cell_centroids, dot_centroids,\
-                  R, G, B, filepath, width=500, height=500):
-    """ Export a csv containing mRNA dot signals per cell
-        Parameters:
-            cell_png: filename string of png image
-            resized_filename: filename string for resized image
-            cell_centroids: list of tuples containing indices for cell centroids (i,j)
-            dots_centroids: list of tuples containing indices for dot centroids (i,j)
-            R, G, B: known RGB values of background/non-border color
-            filepath: filepath to save csv, a string, must follow format below
-                "r'Path where you want to store the csvfile\Csvfilename.csv'"
-            width, height (optional): desired image size (in pixels)
-        Returns: a csv is created with dots per cell data
-    """    
-    # resize image --- larger image = better resolution but longer runtime
-    resized = resize(cell_png, width, height, resized_filename)
-    
-    # open resized image using Pillow
-    resized_image = PIL.Image.open(resized)
-    
-    # convert image to numpy array
-    image_sequence = resized_image.getdata()
-    image_array = np.array(image_sequence)
-    
-    # R, G, B values used to define cell borders: border = 1 non-border = 0
-    cell_borders = define_border(image_array, R, G, B)
-    
-    # reshape array to mirror the dimensions of image (500 x 500) or user input
-    reshaped_cell_borders = reshape(cell_borders, width)
-    
-    # create preliminary cell dictionary
-    # key -> cell # and value -> pixel lindices (i,j) in that cell
-    cell_dic, cell_sizes = define_multiple_cells(reshaped_cell_borders, cell_centroids)
-    
-    # create a list of dot counts and list of dots in each cell
-    dot_count_list, dot_positions = dot_count_multiple_cells(dot_centroids, cell_dic)
-    
-    # save dot per cell data as a csv file
-    save_dots_csv(cell_dic, dot_count_list, cell_sizes, dot_positions, filepath)
-
-# def dots_per_cell(cell_png, resized_filename, cell_centroids, dot_centroids,\
-#                   R, G, B, filepath, width=500, height=500):
-#     """ Export a csv containing mRNA dot signals per cell
-#         Parameters:
-#             cell_png: filename string of png image
-#             resized_filename: filename string for resized image
-#             cell_centroids: list of tuples containing indices for cell centroids (i,j)
-#             dots_centroids: list of tuples containing indices for dot centroids (i,j)
-#             R, G, B: known RGB values of background/non-border color
-#             filepath: filepath to save csv, a string, must follow format below
-#                 "r'Path where you want to store the csvfile\Csvfilename.csv'"
-#             width, height (optional): desired image size (in pixels)
-#         Returns: a csv is created with dots per cell data
-#     """    
-#     # resize image --- larger image = better resolution but longer runtime
-#     # resized = resize(cell_png, width, height, resized_filename)
-    
-#     # open resized image using Pillow
-#     resized_image = PIL.Image.open(cell_png)
-    
-#     # convert image to numpy array
-#     image_sequence = resized_image.getdata()
-#     image_array = np.array(image_sequence)
-    
-#     # R, G, B values used to define cell borders: border = 1 non-border = 0
-#     cell_borders = define_border(image_array, R, G, B)
-    
-#     # reshape array to mirror the dimensions of image (500 x 500) or user input
-#     reshaped_cell_borders = reshape(cell_borders, width)
-    
-#     # create preliminary cell dictionary
-#     # key -> cell # and value -> pixel lindices (i,j) in that cell
-#     cell_dic, cell_sizes = define_multiple_cells(reshaped_cell_borders, cell_centroids)
-    
-#     # create a list of dot counts and list of dots in each cell
-#     dot_count_list, dot_positions = dot_count_multiple_cells(dot_centroids, cell_dic)
-    
-#     # save dot per cell data as a csv file
-#     save_dots_csv(cell_dic, dot_count_list, cell_sizes, dot_positions, filepath)
-
 def save_dots_csv(cell_dic, dot_count_list, cell_sizes, dot_positions, filepath):
     """ Export a csv of dots per cell data
         Parameters:
             cell_number: a dictionary, key --> cell #
-                                       value --> pixel locations inside each cell
-            dot_counts: list of dots per cell (same order as dicitonary cell #)
+                                       value --> (i,j) indices of pixels in that cell
+            dot_count_list: list of dots per cell (same order as cell_dic cell #)
+            cell_sizes: list of cell sizes
+            dot_positions: list of (i,j) index locations of dots inside each cell
             filepath: a string, "r'Path where you want to store the csvfile\Csvfilename.csv'"
         Returns: nothing, a csv file is saved to specified file path
     """
@@ -315,7 +312,7 @@ def save_dots_csv(cell_dic, dot_count_list, cell_sizes, dot_positions, filepath)
     for key, val in cell_dic.items():
         cell_number.append(key)
         
-    # create a df with 2 columns: cell # and # of dots
+    # create a df with 4 columns: cell #, # of dots, cell size, dot positions
     dots_per_cell = pd.DataFrame()
     dots_per_cell["Cell #"] = cell_number
     dots_per_cell["# dots"] = dot_count_list
@@ -324,252 +321,123 @@ def save_dots_csv(cell_dic, dot_count_list, cell_sizes, dot_positions, filepath)
     
     # convert df to csv and save to specified filepath
     dots_per_cell.to_csv(filepath, index = False)
-
-def display_img(inputed, outputtype = "plt", colormap="gray", inputtype = "numpy"):
-    if inputtype == "numpy":
-        img = inputed
-    elif inputtype == "png":
-        img = mpimg.imread(inputed)
-    plt.imshow(img, cmap="gray")
     
-    if outputtype == "plt":
-        plt.show()
-    elif (outputtype == "numpy") and (inputtype == "png"):
-        img = mpimg.imread(inputed)
-        return img
-    # plt.savefig("analysis_output/numpy_image.png")
-    # plt.show()
+def dots_per_cell(cell_png, resized_filename, cell_centroids, dot_centroids,\
+                  R, G, B, filepath, width=500, height=500):
+    """ Export a csv containing dots per cell data
+        Parameters:
+            cell_png: filename string of png image
+            resized_filename: filename string for resized image
+            cell_centroids: list of (i,j) tuples, the indices of cell centroids
+            dots_centroids: list of (i,j) tuples, the indices of dot centroids
+            R, G, B: known RGB values of background/non-border color
+            filepath: filepath to save csv, must follow format below
+                "r'Path where you want to store the csvfile\Csvfilename.csv'"
+            width, height (optional): desired image size in pixels
+        Returns: a csv is created with dots per cell data
+    """    
+    # resize image --- larger image = better resolution but longer runtime
+    resized = resize(cell_png, width, height, resized_filename)
     
-def clean_centroids(lst):
-    """ remove duplicate centroids """
-    # new_array = [tuple(row) for row in array]
-    # uniques = np.unique(new_array)
-    # return uniques
-    return np.array(list(set(lst)))
+    # open resized image using PIL and convert to numpy array
+    resized_image = PIL.Image.open(resized)
+    image_sequence = resized_image.getdata()
+    image_array = np.array(image_sequence)
     
-def euclidean_distance(array):
-    return euclidean_distances(array,array)
-
-def remove_non_centroids(array, euclideans, threshold = 50):
-    indices = []
-    distances = []
-    for i in range(len(euclideans)):
-        for j in range(len(euclideans[i])):
-            if (euclideans[i][j] <= threshold) and (euclideans[i][j] != 0):
-                indices.append(i)
-                distances.append(euclideans[i][j])
-
-    indices = list(set(indices))
-
-    array = np.delete(array, indices, axis=0)
-    return array
+    # R, G, B values used to define cell border pixels: border = 1 non-border = 0
+    cell_borders = define_border(image_array, R, G, B)
     
+    # reshape array to mirror the dimensions of image (500 x 500) or user input
+    reshaped_cell_borders = reshape(cell_borders, width)
+    
+    # create preliminary cell dictionary and determine size of each cell
+    # key -> cell # and value -> (i,j) indices of pixels in that cell
+    cell_dic, cell_sizes = define_multiple_cells(reshaped_cell_borders, cell_centroids)
+    
+    # create a list of dot counts and list of dots' positions in each cell
+    dot_count_list, dot_positions = dot_count_multiple_cells(dot_centroids, cell_dic)
+    
+    # save dot per cell data as a csv file
+    save_dots_csv(cell_dic, dot_count_list, cell_sizes, dot_positions, filepath)
+
 def main():
-    pass
+    """
+    (1) Test with two_cell.png image. Cell and dot centroid lists were manually
+    created by looking at the numpy array of the cell outline image. Cell
+    centroids are inside of a cell. Dot centroids are either inside one
+    of the cells or not in any cell. 
+    """
+    # Cell outline file being used and desired resized filename
+    cell_png = "two_cells.png"
+    resized_filename = "two_cells_resized.png"
+    
+    # Dot centroid list manually created by looking at the numpy array of
+    # the cell image. Dots are either in one cell or not in any cell
+    # List of tuples representing the centroids of each cell
+    cell_centroids = [(5,5), (20,15)]
+    dot_centroids = [(7,4), (19,3), (15,9), (10, 7), (19, 16), (20, 13), (21, 15), (6,4)]
+    
+    # RGB of background color of the image used (white)
+    R, G, B = 255, 255, 255
+    
+    # where the csvfile is saved
+    filepath = file_path_name(r'C:\Users\kayla\project\FISH-Image-Analysis', "FISH-Image-Analysis", "analysis_output", "two_cells")
+    
+    # save a csv file of dots per cell data for two_cells.png
+    dots_per_cell(cell_png, resized_filename, cell_centroids, dot_centroids,\
+                  R, G, B, filepath)
+
+    """
+    (2) Test with multi_cell_test.png image. Cell and dot centroid lists
+    generated as above test example with two_cell.png (1)
+    """
+    # Cell outline file being used and desired resized filename
+    multi_cell_png = "multi_cell_test.png"
+    resized_filename_multi = "multi_cell_resized.png"
+
+    # Dot centroid list manually created by looking at the numpy array of
+    # the cell image. Dots are either in one cell or not in any cell.
+    # List of tuples representing the centroids of each cell
+    multi_cell_centroids = [(12,9), (15,19), (9,34), (17,42), (29,16), (30,31)]
+    multi_dot_centroids = [(0, 0), (5,6), (9,14), (13,26), (0,22), (9,6), (9,7),\
+                      (14,17), (9,32), (9,33), (9,34), (20, 41), (31,16),\
+                          (31,28), (34,30), (24,31), (30, 34)]
+    
+    # where the csvfile is saved
+    filepath_multi = file_path_name(r'C:\Users\kayla\project\FISH-Image-Analysis', "FISH-Image-Analysis", "analysis_output", "multiple_cells")
+    
+    # save a csv file of dots per cell data for multi_cell_test.png
+    dots_per_cell(multi_cell_png, resized_filename_multi, multi_cell_centroids,\
+                  multi_dot_centroids, R, G, B, filepath_multi)
+    
+    """ 
+    (3) Attempt to use real cell outlines (from cell_segmentation)
+    and cell and dot centroids (from Puncta_Thresholding). Cell and dot
+    centroids generated using get_centroids method from Puncta_Thresholding
+    """
+    # cell outline image from cell_segmentation, desired resized filename,
+    # and thresholded dots image from puncta thresholding
+    real_cell_png = "C:/Users/kayla/project/FISH-Image-Analysis/Images/SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001/Input/C4_SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001_otlines.png"
+    resized_filename_real = "resized_cell_outline.png"
+    real_dots_png = 'C:/Users/kayla/project/FISH-Image-Analysis/Images/SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001/Input/C2 (Pax6) thresholded dots.tif'
+    
+    # reszie cell outline image, then get all cell centroids
+    real_cell_centroids = refine_cell_centroids(real_cell_png, 1500,1500, 0, "resized_cell_outline.png")
+    
+    # resize thresholded dots image, then get all dot centroids
+    real_dot_centroids = refine_dot_centroids(real_dots_png, 1500, 1500, 0, "resized_thresholded_dots.png")
+    
+    # RGB of background color of the image used (black)
+    R2, G2, B2 = 0, 0, 0
+    
+    # where the csvfile is saved
+    filepath_real = file_path_name(r'C:\Users\kayla\project\FISH-Image-Analysis', "FISH-Image-Analysis", "analysis_output", "real_FISH_images")
+    
+    # save a csv file of dots per cell data for real FISH images of cells and dots
+    # cell_dict, cell_sizez = dots_per_cell(real_cell_png, resized_filename_real,\
+    #                                       real_cell_centroids, real_dot_centroids,\
+    #                                       R2, G2, B2, filepath_real,\
+    #                                       width=1500, height=1500)
 
 if __name__ == "__main__":
-    # main()
-##############################################################################
-    """ try with two_cell.png image --- works!
-    """
-    # # cell outline file being used and desired resized filename
-    # cell_png = "two_cells.png"
-    # resized_filename = "two_cells_360x.png"
-    
-    # # random dot centroid list I made by looking at the numpy array of the cell image
-    # # the dot centroids are either in one cell, the other cell, or not in a cell
-    # dots_list = [(7,4), (19,3), (15,9), (10, 7), (19, 16), (20, 13), (21, 15), (6,4)]
-    
-    # # list of tuples representing the centroids of each cell--- an output from
-    # # Soumili and Joseph
-    # cell_centroids = [(5,5), (20,15)]
-    
-    # # the color white (the background color of the test image used)
-    # R, G, B = 255, 255, 255
-    
-    # """ reevaluate this csv saving method--- only works on Kayla's computer """
-    # # where the csvfile is being saved
-    # # filepath = r'FISH-Image-Analysis\analysis_output\dots_per_cell_twocell_test.csv'
-    # filepath = r'C:\Users\kayla\project\FISH-Image-Analysis\analysis_output\dots_per_cell_twocell_test.csv'
-    
-    # # calling this function saves a csv file of dots per cell data
-    # dots_per_cell(cell_png, resized_filename, cell_centroids, dots_list,\
-    #               R, G, B, filepath)
-
-##############################################################################
-    """ try with multi_cell_test.png image --- works!
-    """
-    # # cell outline file being used and desired resized filename
-    # cell_png = "multi_cell_test.png"
-    # resized_filename = "multi_cell_360x.png"
-
-    # # random dot centroid list I made by looking at the numpy array of the cell image
-    # # the dot centroids are either in one cell, the other cell, or not in a cell
-    # cell_centroids = [(12,9), (15,19), (9,34), (17,42), (29,16), (30,31)]
-    # dot_centroids = [(0, 0), (5,6), (9,14), (13,26), (0,22), (9,6), (9,7),\
-    #                   (14,17), (9,32), (9,33), (9,34), (20, 41), (31,16),\
-    #                       (31,28), (34,30), (24,31), (30, 34)]
-    
-    # # the color white (the background color of the test image used)
-    # R, G, B = 255, 255, 255
-    
-    # # where the csvfile is being saved
-    # filepath = r'C:\Users\kayla\project\FISH-Image-Analysis\analysis_output\dots_per_cell_multicell_test.csv'
-    
-    # # calling this function saves a csv file of dots per cell data
-    # dots_per_cell(cell_png, resized_filename, cell_centroids, dot_centroids,\
-    #               R, G, B, filepath, width = 750, height = 750)
-    
-    # img = mpimg.imread(resized_filename)
-    # imgplot = plt.imshow(img)
-    
-##############################################################################    
-    """ after getting multi_cell_test.png to work, try with real cell outline,
-        cell centroids, and dot centroids
-        need =  cell outline from Antonio (a filename)
-                cell centroids from Soumili and Joseph
-                dot centorids from Soumili and Jospeh
-    """
-    # # cell outline file being used and desired resized filename
-    cell_png = "C:/Users/kayla/project/FISH-Image-Analysis/Images/SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001/Input/C4_SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001_otlines.png"
-    # resized_filename = "resized_C4_SOX2.png"
-    # dots_png = 'C:/Users/kayla/project/FISH-Image-Analysis/Images/SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001/Input/C2 (Pax6) thresholded dots.tif'
-    
-    
-    # resized_image = PIL.Image.open(cell_png)
-    
-    # # convert image to numpy array
-    # image_sequence = resized_image.getdata()
-    # image_array = np.array(image_sequence)
-    
-    # # """ To Do: get rid of border around cell outlines
-    # # """
-    # # # image = mpimg.imread(cell_png)
-    # # # plt.imshow(image)
-    # # # plt.axis("off")
-    
-    # # # # random dot centroid list I made by looking at the numpy array of the cell image
-    # # # # the dot centroids are either in one cell, the other cell, or not in a cell
-    
-    # # reshape cell_outline image to 750x750, then get the cell centroids
-    reshaped_cell_outlines = resize(cell_png, 1500, 1500, "reshaped_cell_outline.png")
-    # # # image = mpimg.imread(reshaped_cell_outlines)
-    # # # plt.imshow(image)
-    # # # plt.axis("off")
-    cell_centroids_2 = Puncta_Thresholding(reshaped_cell_outlines).get_centroids(0)
-    clean_cell_centroids_2 = clean_centroids(cell_centroids_2)
-    # cell_euclideans = euclidean_distance(clean_cell_centroids_2)
-    sorted_array = clean_cell_centroids_2[np.argsort(clean_cell_centroids_2[:, 1])]
-    sorted_euclideans = euclidean_distance(sorted_array)
-    antonio_outline = display_img(reshaped_cell_outlines, outputtype = "plt", inputtype = "png")
-
-    nontrivial_cells = remove_non_centroids(sorted_array, sorted_euclideans)
-    
-    # # # reshape thresholded dots image to 750x720, then get all dot centroids
-    # reshaped_thresholded_dots = resize(dots_png, 1500, 1500, "reshaped_thresholded_dots.png")
-    # # # dot_image = mpimg.imread(reshaped_thresholded_dots)
-    # # # plt.imshow(dot_image)
-    # # # plt.axis("off")
-    # dot_centroids_2 = Puncta_Thresholding(reshaped_thresholded_dots).get_centroids(0)
-    
-    # # # # # the color black (the background color of the test image used)???
-    # R, G, B = 0, 0, 0
-    
-    # # # # where the csvfile is being saved
-    # filepath = r'C:\Users\kayla\project\FISH-Image-Analysis\analysis_output\testing_dot_count_nonresized.csv'
-    
-    # # # calling this function saves a csv file of dots per cell data
-    # dots_per_cell(cell_png, resized_filename, cell_centroids_2, dot_centroids_2,\
-    #     R, G, B, filepath, width=1500, height=1500)
-    
-##############################################################################  
-    """ using ms paint cells, dots, and overlay for verification """
-    # cell outline file being used and desired resized filename
-    # cell_png = 'C:/Users/kayla/project/FISH-Image-Analysis/FISH_analysis/input_cells_triple_copy.png'
-    # cell_png = 
-#     resized_filename = "resized_cell_input_triple.png"
-#     # dots_png = 'C:/Users/kayla/project/FISH-Image-Analysis/FISH_analysis/input_dots_triple_copy.png'
-#     dots_2 = 'C:/Users/kayla/project/FISH-Image-Analysis/FISH_analysis/input_giant_dot_triple_resized.png'
-#     dots_png = 'C:/Users/kayla/project/FISH-Image-Analysis/Images/SOX2_(G)._PAX6_(R)._PAX7_(FR)_40x_Spinal_Cords_Uninjured_001/Input/C2 (Pax6) thresholded dots.tif'
-    
-#     resized_image = PIL.Image.open(cell_png)
-    
-#     # # convert image to numpy array
-#     image_sequence = resized_image.getdata()
-#     image_array = np.array(image_sequence)
-    
-#     # # """ To Do: get rid of border around cell outlines
-#     # # """
-#     # # image = mpimg.imread(cell_png)
-#     # # plt.imshow(image)
-#     # # plt.axis("off")
-    
-#     # # # # random dot centroid list I made by looking at the numpy array of the cell image
-#     # # # # the dot centroids are either in one cell, the other cell, or not in a cell
-    
-    
-#     # 0 and 1 cell border definition plus reshaped to 2D array
-#     cells_borders = define_border(image_array, 255, 255, 255)
-#     reshaped_borders = reshape(cells_borders, 417)
-#     numpy_image_rep = display_img(reshaped_borders)
-#     test_cell_centroids = Puncta_Thresholding(cell_png).get_centroids(190)
-#     clean_cell_centroid_test = clean_centroids(test_cell_centroids)
-    
-    
-#     # grayscale dots trial
-#     # dots_resized_imaage = PIL.Image.open(dots_2)
-#     # dots_image_sequence = resized_image.getdata()
-#     # dots_image_array = np.array(image_sequence)
-#     gray_dots = display_img(dots_2, outputtype = "numpy", inputtype = "png")
-#     # gray_dots_arr = mpimg.imread(gray_dots)
-#     gray_dot_centroids = Puncta_Thresholding(dots_2).get_centroids(190)
-    
-#     # overlay
-#     # overlay_png = 'C:/Users/kayla/project/FISH-Image-Analysis/FISH_analysis/input_cells_dots_overlay_triple_copy.png'
-#     # overlay_image = display_img(overlay_png, inputtype="png")
-    
-    
-# ####################################################
-#     # # reshape cell_outline image to 750x750, then get the cell centroids
-#     reshaped_cell_outlines = resize(cell_png, 417, 417, "resized_cell_triple_copy.png")
-#     # image = mpimg.imread(reshaped_cell_outlines)
-#     # plt.imshow(image)
-#     # plt.axis("off")
-#     cell_centroids_2 = Puncta_Thresholding(reshaped_cell_outlines).get_centroids(0)
-    
-#     # # reshape thresholded dots image to 750x720, then get all dot centroids
-#     reshaped_thresholded_dots = resize(dots_png, 417, 417, "resized_dots_triple_copy.png")
-#     # dot_image = mpimg.imread(reshaped_thresholded_dots)
-#     # plt.imshow(dot_image)
-#     # plt.axis("off")
-#     dot_centroids_2 = Puncta_Thresholding(reshaped_thresholded_dots).get_centroids(0)
-    
-    # # # # # the color white (the background color of the test image used)???
-    # R, G, B = 255, 255, 255
-    
-    # # # # # where the csvfile is being saved
-    # filepath = r'C:\Users\kayla\project\FISH-Image-Analysis\analysis_output\testing_input_triple.csv'
-    
-    # # # # calling this function saves a csv file of dots per cell data
-    # dots_per_cell(cell_png, resized_filename, cell_centroids_2, dot_centroids_2,\
-    #     R, G, B, filepath, width=417, height=417)
-
-
-
-##############################################################################  
-######## CUTS
-    # """ create function: defines the borders of each cell given the centroid
-    #     of each cell as a list of tuples
-    # """
-    # cell_1 = define_cell(reshaped_cell_borders, 5, 5, 2)
-    # cell_2 = define_cell(reshaped_cell_borders, 20, 15, 2)
-    
-    # """ create function: creates list of numpy arrays (which represent
-    #         the pixels inside of each cell)
-    # """
-    # # create a list of numpy arrays, each element in list is np array of pixels
-    # # in a single cell
-    # cell_lst = [cell_1, cell_2]
-    
-    # # create a dictionary of cells: key --> cell # and value --> pixels in cell
-    # cell_dic_try = cell_dictionary(cell_lst)
+    main()
