@@ -3,7 +3,7 @@ A library with the funcionality to prepare and analyze HCR-FISH images. Using th
 
 ## Installation
 ```
-pip install FISH_analysis
+pip install FISH-analysis
 ```
 
 ## Get started
