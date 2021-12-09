@@ -151,13 +151,13 @@ class CZI_Channels:
     :type CZI: .czi
     """
     
-    def __init__(self, CZI) -> None:
+    def __init__(self, Czi) -> None:
         # read czi data as array
-        with CziFile(CZI) as czi:
+        with CziFile(Czi) as czi:
             image_arrays = czi.asarray()
         
         # store filename and directory
-        path, ext = os.path.splitext(CZI)
+        path, ext = os.path.splitext(Czi)
         filename = path.split('/')
         self.cziname = filename[-1]
         

@@ -1,3 +1,0 @@
-Cell #,# dots,Cell size (in pixels),"Dot (i,j) positions in reshaped image"
-0,3,96,"[(7, 4), (10, 7), (6, 4)]"
-1,2,74,"[(20, 13), (21, 15)]"
