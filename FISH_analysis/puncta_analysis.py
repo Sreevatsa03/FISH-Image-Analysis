@@ -1,8 +1,5 @@
-import cv2
 from PIL import Image
-from FISH_analysis import Puncta_Thresholding
 import numpy as np
-import PIL
 from skimage.morphology import flood_fill
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -346,7 +343,7 @@ class Puncta_Analysis:
         """    
         
         # open image using PIL and convert to numpy array
-        image = PIL.Image.open(self.outline)
+        image = Image.open(self.outline)
         image_sequence = image.getdata()
         image_array = np.array(image_sequence)
         

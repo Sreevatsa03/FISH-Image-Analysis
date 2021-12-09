@@ -9,6 +9,8 @@ PIL
 czifile
 numpy
 cellpose
+scikit-learn
+Pillow
 
 """
 Cellpose requires python 3.8 to run. It is advised you create a separate conda environment 
