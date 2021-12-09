@@ -8,7 +8,7 @@ pip install FISH_analysis
 
 ## Get started
 
-### Cell Segmentation
+### [Cell Segmentation](FISH_analysis/cell_segmentation.py)
 - Separate the color channels in a czi and save as images
 - Create mask and outline of cells in FISH image
 
@@ -37,7 +37,7 @@ cells.make_masks(0.9, -5, None, 'cyto')
 cells.make_outlines()
 ```
 
-### Puncta Thresholding
+### [Puncta Thresholding](FISH_analysis/puncta_thresholding.py)
 - Threshold FISH image to isolate puncta (dots) and get rid of noise
 - Get centroids of objects (cells or dots) in given image (cells outline or thresholded dots)
 
@@ -60,7 +60,7 @@ thresholding3.watershed("plot")
 thresholding3.gaussian_blur(11, "plot")
 ```
 
-### Puncta Analysis
+### [Puncta Analysis](FISH_analysis/puncta_analysis.py)
 - Threshold FISH image to isolate puncta (dots) and get rid of noise
 - Get centroids of objects (cells or dots) in given image (cells outline or thresholded dots)
 
