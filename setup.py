@@ -32,5 +32,11 @@ setup(
     ],
     packages=["FISH_analysis"],
     include_package_data=True,
-    install_requires=["numpy, cellpose, Pillow, matplotlib, os, opencv-python, scikit-learn"]
+    install_requires=["numpy",
+                    "cellpose", 
+                    "Pillow", 
+                    "matplotlib", 
+                    "os", 
+                    "opencv-python", 
+                    "scikit-learn"]
 )
