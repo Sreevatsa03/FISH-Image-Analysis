@@ -12,7 +12,7 @@ with open(path.join(HERE, 'README.md'), encoding='utf-8') as f:
 # call to setup() does all the work
 setup(
     name="FISH-analysis",
-    version="0.0.1",
+    version="0.1.0",
     description="FISH image analysis library",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -36,7 +36,6 @@ setup(
                     "cellpose", 
                     "Pillow", 
                     "matplotlib", 
-                    "os", 
                     "opencv-python", 
                     "scikit-learn"]
 )
