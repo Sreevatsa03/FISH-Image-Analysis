@@ -1,6 +1,6 @@
 language: python
 python:
-  - 3.9
+  - 3.8
 
 # Update pip to the latest version
 before_install:
@@ -10,12 +10,14 @@ before_install:
 install:
   - pip install -r requirements.txt
 
-script: 
-  - echo foo
+script: echo foo
 
 deploy:
+  edge: true
   provider: pypi
+  twine_version: 1.12.1 
   username: "__token__"
   password: "$PYPI_TOKEN"
   on:
     branch: main
+    python: 3.9
