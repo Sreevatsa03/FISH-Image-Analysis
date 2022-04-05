@@ -30,7 +30,8 @@ setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Topic :: Scientific/Engineering :: Image Processing"
     ],
-    packages=["FISH_analysis"],
+    package_dir={"": "src"},
+    packages=find_packages(where="src"),
     include_package_data=True,
     install_requires=["numpy",
                     "cellpose", 
