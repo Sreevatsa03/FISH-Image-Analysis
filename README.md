@@ -61,8 +61,8 @@ thresholding3.gaussian_blur(11, "plot")
 ```
 
 ### [Puncta Analysis](FISH_analysis/puncta_analysis.py)
-- Threshold FISH image to isolate puncta (dots) and get rid of noise
-- Get centroids of objects (cells or dots) in given image (cells outline or thresholded dots)
+- Create overlay of segmented cells outline onto thresholded puncta
+- Ouput csv file with number of puncta in each cell
 
 ```Python
 from FISH_analysis import Puncta_Analysis
