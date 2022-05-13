@@ -1,5 +1,5 @@
 # FISH Analysis
-A library with the funcionality to prepare and analyze HCR-FISH images. Using this library, you can construct a basic FISH image anlysis pipeline.
+A library with the functionality to prepare and analyze HCR-FISH images. Using this library, you can construct a basic FISH image anlysis pipeline.
 
 ## Installation
 ```
